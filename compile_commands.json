@@ -1,0 +1,21 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-std=c++17",
+      "-Iinclude",
+      "-g",
+      "-O0",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "build/obj/lexer.o",
+      "src/lexer.cpp"
+    ],
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/lexer.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/lexer.o"
+  }
+]
