@@ -4,7 +4,7 @@
 
 enum class State { START, IDENTIFIER, NUMBER, STRING, ERROR};
 
-enum class TokenType { BACKGROUND, DEFINE, SHOW, SCENE, IDENTIFIER, STRING, FLOAT, INT, COLON, COMMA, LPAREN, RPAREN, LBRACKET, RBRACKET, NEWLINE, END_OF_FILE, UNKNOWN };
+enum class TokenType { BACKGROUND, DEFINE, SHOW, SCENE, IDENTIFIER, STRING, FLOAT, INT, COLON, COMMA, LPAREN, RPAREN, LBRACKET, RBRACKET, END_OF_FILE, UNKNOWN };
 
 struct Token {
   TokenType type;
@@ -14,7 +14,7 @@ struct Token {
   Token(TokenType t, const std::string &v, int l) : type(t), value(v), line(l) {}
 };
 
-// Mapa para interpretacion
+// Mapa para interpretacion (solo para mostrar)
 
 // Hash para TokenType
 namespace std {
@@ -42,7 +42,6 @@ const std::unordered_map<TokenType, std::string> tokenStr = {
   {TokenType::RPAREN, "RPAREN"},
   {TokenType::LBRACKET, "LBRACKET"},
   {TokenType::RBRACKET, "RBRACKET"},
-  {TokenType::NEWLINE, "NEWLINE"},
   {TokenType::UNKNOWN, "UNKNOWN"},
   {TokenType::END_OF_FILE, "EOF"}
 };

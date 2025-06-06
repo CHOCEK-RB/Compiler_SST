@@ -1,5 +1,11 @@
 background ciudad_noche ("ciudad_noche.png", scale: 1.0, opacity: 1.0)
 
+define ana "Ana" {
+  happy: ("ana_happy.png", scale: 1.0),
+  sad: ("ana_sad.png", scale: 0.9),
+  angry: ("ana_angry.png", scale: 1.1)
+}
+
 scene ciudad_noche (transition: fade_lento)
 show ana happy (position: left, transition: slide_fast)
 

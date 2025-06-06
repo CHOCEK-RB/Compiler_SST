@@ -1,0 +1,19 @@
+background ::= <identificador> <(> <string> <)> |  <identificador> <(> <string> <,> <parameters> <)> 
+
+parameter ::= <identificador> <:> <value_parameter>
+
+parameters ::= <parameter> | <parameter> <,> <parameters>
+
+value_parameter ::= <int> | <float> | <identificador>
+
+define :== <identificador> <string> <{define_modes}> 
+
+define_mode :== <identificador> <:> <(> <string> <)> | <identificador> <(> <string> <,> <parameters> <)>
+
+define_modes :== <define_mode> | <define_mode> <,> <define_mode>
+
+scene :== <identificador> | <identificador> <(> <parameters> <)>
+
+show :== <identificador> | <identificador> <(> <parameters> <)> | <identificador> <identificador> <(> <parameters> <)>
+
+dialogue :== <string> | <string> <(> <parameters> <)> | <identificador> <string> | <identificador> <string> <(> <parameters> <)>

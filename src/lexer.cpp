@@ -30,8 +30,24 @@ void Lexer::advance() {
   }
   currentChar = buffer[bufferPos++];
 }
+Token Lexer::peekToken(size_t n) {
+  while (bufferToken.size() < n) {
+    bufferToken.push_back(realNextToken());
+  }
+  return bufferToken[n - 1];
+}
 
 Token Lexer::nextToken() {
+  if (!bufferToken.empty()) {
+    Token tok = bufferToken.front();
+    bufferToken.pop_front();
+    return tok;
+  }
+  return realNextToken();
+}
+
+
+Token Lexer::realNextToken() {
   std::string lexeme;
   State state = State::START;
 
@@ -39,11 +55,6 @@ Token Lexer::nextToken() {
     switch (state) {
     case State::START:
       if (std::isspace(currentChar)) {
-        if (currentChar == '\n') {
-          ++line;
-          advance();
-          return {TokenType::NEWLINE, "\\n", line};
-        }
         advance();
       } else if (std::isalpha(currentChar) || currentChar == '_') {
         lexeme += currentChar;
