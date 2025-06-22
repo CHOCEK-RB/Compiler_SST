@@ -2,6 +2,8 @@
 #include <iostream>
 #include <parser.hpp>
 #include <stdexcept>
+#include <string>
+#include <unordered_map>
 
 std::string tokenToString(TokenType type) {
   auto it = tokenStr.find(type);
@@ -52,14 +54,37 @@ void Parser::parseStatement() {
 
 void Parser::parseBackground() {
   advance();
+  std::string name = current.value;
+
   expect(TokenType::IDENTIFIER, "Se esperaba el nombre del fondo");
   expect(TokenType::LPAREN, "Se esperaba '('");
+
+  std::string imagePath = current.value;
+
   expect(TokenType::STRING, "Se esperaba un string con la ruta de la imagen");
+
+  std::unordered_map<std::string, std::string> parameters;
   if (current.type == TokenType::COMMA) {
     advance();
-    parseParameters();
+    do{
+      std::string key = current.value;
+      expect(TokenType::IDENTIFIER, "se esperaba nombre del parametro");
+      expect(TokenType::COLON, "Se esperaba \':\'");
+      std::string value = current.value;
+      advance();
+      parameters[key]=value;
+      if(current.type == TokenType::COMMA)
+        advance();
+    }while(current.type !=TokenType::RPAREN);
+    //parseParameters();
   }
   expect(TokenType::RPAREN, "Se esperaba ')'");
+
+  BackgroundInfo bg;
+  bg.name = name;
+  bg.imagePath = imagePath;
+  bg.parameters = parameters;
+  backgrounds[name] = bg;
 }
 
 void Parser::parseDefine() {
