@@ -18,7 +18,7 @@ struct Mode{
 struct CharacterInfo{
   std::string Internalname;
   std::string Visiblename;
-  std::unordered_map<std::string, Mode> modes;
+  std::vector<std::unordered_map<std::string, Mode>> modes;
 };
 
 struct SceneInfo{
@@ -32,6 +32,13 @@ struct showInfo{
   std::unordered_map<std::string, std::string> paremeters;
 };
 
+struct DialogoLinea{
+  std::string speaker;
+  std::string text;
+  std::unordered_map<std::string, std::string>parameters;
+  int linea;
+};
+
 class Parser {
 public:
   Parser(Lexer &lexer);
@@ -39,6 +46,7 @@ public:
   std::unordered_map<std::string, CharacterInfo> characters;
   std::vector<SceneInfo> scenes;
   std::vector<showInfo> shows;
+  std::vector<DialogoLinea> dialogues;
   void parseProgram();
 
 private:
@@ -60,10 +68,10 @@ private:
   void parseScene();
   void parseShow();
   void parseDialogue();
-  void parseParameters();
-  void parseParameter();
-  void parseModes();
-  void parseMode();
+  void parseParameters(std::unordered_map<std::string,std::string>&);
+  void parseParameter(std::unordered_map<std::string,std::string>&);
+  void parseModes(std::vector<std::unordered_map<std::string,Mode>>&);  
+  void parseMode(std::vector<std::unordered_map<std::string,Mode>>&);
 
   bool isBackground() { return current.type == TokenType::BACKGROUND; }
   bool isDefine() { return current.type == TokenType::DEFINE; }
