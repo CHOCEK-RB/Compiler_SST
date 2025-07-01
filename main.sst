@@ -1,17 +1,14 @@
-background ciudad_noche ("./assets/backgrounds/cerezos.jpg", scale: 1.0)
-
+background ciudad_noche ("./assets/backgrounds/cerezos.jpg")
 define ana "Ana" {
-  happy: ("./assets/characters/maid/despreocupada.png", scale: 1.1),
-  angry: ("./assets/characters/maid/enojada.png", scale: 1.1)
+    happy: ("./assets/characters/maid/despreocupada.png", scale: 1.1),
+    angry: ("./assets/characters/maid/enojada.png", scale: 1.1)
 }
 
-scene ciudad_noche (scale : 10.0)
-show ana happy (x :10, y : 100)
+scene ciudad_noche
+show ana happy (x: 10, y: 100)
 
-ana "**Hola!** Como estas? ~~No me ignores~~" (speed: 30)
-
-"Estoy bien"
-
-ana "Que alegria!"
+ana "**Hola!** Como estas? ~~No me ignores~~" (speed: 1)
+You "Estoy bien"
+ana "Que alegria!" (speed: 20)
 
 hide ana

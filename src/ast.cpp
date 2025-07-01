@@ -159,6 +159,12 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "  sf::RectangleShape textBox_;\n";
     out << "  sf::Text dialogueText_;\n";
     out << "  bool isVisible_ = false;\n";
+    out << "  std::string fullText_;\n";
+    out << "  std::string currentTypedText_;\n";
+    out << "  size_t charIndex_ = 0;\n";
+    out << "  float timePerChar_ = 0.05f; // Velocidad por defecto\n";
+    out << "  float elapsedTime_ = 0.0f;\n";
+    out << "  bool isTyping_ = false;\n";
     out << "public:\n";
     out << "  DialogueSystem(const sf::Font &font) : dialogueText_(font, \"\") {\n";
     out << "    textBox_.setSize({1200, 200});\n";
@@ -167,8 +173,39 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "    dialogueText_.setCharacterSize(28);\n";
     out << "    dialogueText_.setFillColor(sf::Color::White);\n";
     out << "    dialogueText_.setPosition({50, 430});\n";
-    out << "  }\n";
-    out << "  void setText(const std::string &text) { dialogueText_.setString(text); isVisible_ = true; }\n";
+    out << "  }\n\n";
+    out << "  void start(const std::string &text, float speed) {\n";
+    out << "    fullText_ = text;\n";
+    out << "    currentTypedText_.clear();\n";
+    out << "    charIndex_ = 0;\n";
+    out << "    elapsedTime_ = 0.0f;\n";
+    out << "    timePerChar_ = (speed > 0) ? 1.0f / speed : 0.0f;\n";
+    out << "    isTyping_ = true;\n";
+    out << "    isVisible_ = true;\n";
+    out << "    dialogueText_.setString(\"\");\n";
+    out << "  }\n\n";
+    out << "  void update(float deltaTime) {\n";
+    out << "    if (!isTyping_ || charIndex_ >= fullText_.length()) return;\n";
+    out << "    elapsedTime_ += deltaTime;\n";
+    out << "    if (elapsedTime_ >= timePerChar_) {\n";
+    out << "      elapsedTime_ = 0.0f;\n";
+    out << "      currentTypedText_ += fullText_[charIndex_];\n";
+    out << "      dialogueText_.setString(currentTypedText_);\n";
+    out << "      charIndex_++;\n";
+    out << "      if (charIndex_ >= fullText_.length()) {\n";
+    out << "        isTyping_ = false;\n";
+    out << "      }\n";
+    out << "    }\n";
+    out << "  }\n\n";
+    out << "  void finish() {\n";
+    out << "    if (isTyping_) {\n";
+    out << "      isTyping_ = false;\n";
+    out << "      charIndex_ = fullText_.length();\n";
+    out << "      currentTypedText_ = fullText_;\n";
+    out << "      dialogueText_.setString(fullText_);\n";
+    out << "    }\n";
+    out << "  }\n\n";
+    out << "  bool isFinished() const { return !isTyping_; }\n";
     out << "  void hide() { isVisible_ = false; }\n";
     out << "  void draw(sf::RenderWindow &window) override {\n";
     out << "    if (isVisible_) { window.draw(textBox_); window.draw(dialogueText_); }\n";
@@ -187,7 +224,7 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "};\n\n";
 
     out << "// --- Definiciones de Comandos de la Historia ---\n";
-    out << "struct DialogueCmd { std::string speakerId; std::string text; };\n";
+    out << "struct DialogueCmd { std::string speakerId; std::string text; float speed; };\n";
     out << "struct ShowCmd { std::string characterId; std::string mode; Transform transform; };\n";
     out << "struct HideCmd { std::string characterId; };\n";
     out << "struct SceneCmd { std::string backgroundName; };\n";
@@ -195,27 +232,29 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
 
     out << "class VisualNovelEngine {\n";
     out << "public:\n";
+    out << "  enum class State { IDLE, EXECUTING_COMMAND, WRITING_DIALOGUE, WAITING_FOR_INPUT };\n\n";
     out << "  void initialize() {\n";
     out << "    window_.create(sf::VideoMode({1200, 600}), \"visualNovel\");\n";
     out << "    window_.setPosition({100, 100});\n";
     out << "    window_.setFramerateLimit(60);\n";
     out << "    if (!font_.openFromFile(\"assets/fonts/CaskaydiaCoveNerdFont-Regular.ttf\")) { std::cerr << \"Error: No se pudo cargar la fuente.\\n\"; return; }\n\n";
-    
-    out << "    // --- CORRECCIÓN DE ORDEN DE DIBUJADO ---\n";
-    out << "    createAssets(); // Primero crear y añadir fondos/personajes\n\n";
+    out << "    createAssets();\n";
     out << "    dialogueSystem_ = std::make_shared<DialogueSystem>(font_);\n";
-    out << "    sceneManager_.addComponent(\"dialogueSystem\", dialogueSystem_); // Añadir el diálogo al final para que se dibuje encima\n\n";
-    
+    out << "    sceneManager_.addComponent(\"dialogueSystem\", dialogueSystem_);\n\n";
     out << "    buildStoryScript();\n";
-    out << "    if (!storyScript_.empty()) executeNextCommand();\n";
+    out << "    if (!storyScript_.empty()) { currentState_ = State::EXECUTING_COMMAND; }\n";
     out << "  }\n\n";
     out << "  void run() {\n";
+    out << "    sf::Clock clock;\n";
     out << "    while (window_.isOpen()) {\n";
+    out << "      sf::Time elapsed = clock.restart();\n";
     out << "      handleEvents();\n";
+    out << "      update(elapsed.asSeconds());\n";
     out << "      render();\n";
     out << "    }\n";
     out << "  }\n\n";
     out << "private:\n";
+    out << "  State currentState_ = State::IDLE;\n";
     out << "  sf::RenderWindow window_;\n";
     out << "  sf::Font font_;\n";
     out << "  SceneManager sceneManager_;\n";
@@ -243,8 +282,20 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     }
     out << "  }\n\n";
 
+    out << "  void update(float deltaTime) {\n";
+    out << "    if (currentState_ == State::EXECUTING_COMMAND) {\n";
+    out << "      executeNextCommand();\n";
+    out << "    }\n";
+    out << "    if (currentState_ == State::WRITING_DIALOGUE) {\n";
+    out << "      dialogueSystem_->update(deltaTime);\n";
+    out << "      if (dialogueSystem_->isFinished()) {\n";
+    out << "        currentState_ = State::WAITING_FOR_INPUT;\n";
+    out << "      }\n";
+    out << "    }\n";
+    out << "  }\n\n";
+
     out << "  void executeNextCommand() {\n";
-    out << "    if (commandIndex_ >= storyScript_.size()) { dialogueSystem_->hide(); return; }\n\n";
+    out << "    if (commandIndex_ >= storyScript_.size()) { dialogueSystem_->hide(); currentState_ = State::IDLE; return; }\n\n";
     out << "    const auto& command = storyScript_[commandIndex_];\n";
     out << "    std::visit([this](auto&& arg) {\n";
     out << "      using T = std::decay_t<decltype(arg)>;\n";
@@ -263,7 +314,8 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "      } else if constexpr (std::is_same_v<T, DialogueCmd>) {\n";
     out << "        std::string speakerName = (arg.speakerId == \"You\") ? \"\" : arg.speakerId;\n";
     out << "        if (auto it = characters_.find(arg.speakerId); it != characters_.end()) { speakerName = it->second->getName(); }\n";
-    out << "        dialogueSystem_->setText(speakerName.empty() ? arg.text : speakerName + \":\\n\" + arg.text);\n";
+    out << "        dialogueSystem_->start(speakerName.empty() ? arg.text : speakerName + \":\\n\" + arg.text, arg.speed);\n";
+    out << "        currentState_ = State::WRITING_DIALOGUE;\n";
     out << "      }\n";
     out << "    }, command);\n\n";
     out << "    commandIndex_++;\n";
@@ -271,12 +323,15 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
 
     out << "  void handleEvents() {\n";
     out << "    while (std::optional<sf::Event> event = window_.pollEvent()) {\n";
-    out << "        if (event->is<sf::Event::Closed>()) {\n";
-    out << "            window_.close();\n";
-    out << "        }\n";
+    out << "        if (event->is<sf::Event::Closed>()) { window_.close(); }\n";
     out << "        if (auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {\n";
     out << "            if (keyPressed->code == sf::Keyboard::Key::Space) {\n";
-    out << "                executeNextCommand();\n";
+    out << "                if (currentState_ == State::WRITING_DIALOGUE) {\n";
+    out << "                    dialogueSystem_->finish();\n";
+    out << "                    currentState_ = State::WAITING_FOR_INPUT;\n";
+    out << "                } else if (currentState_ == State::WAITING_FOR_INPUT) {\n";
+    out << "                    currentState_ = State::EXECUTING_COMMAND;\n";
+    out << "                }\n";
     out << "            }\n";
     out << "        }\n";
     out << "    }\n";

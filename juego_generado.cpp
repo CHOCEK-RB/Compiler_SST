@@ -134,6 +134,12 @@ class DialogueSystem : public SceneComponent {
   sf::RectangleShape textBox_;
   sf::Text dialogueText_;
   bool isVisible_ = false;
+  std::string fullText_;
+  std::string currentTypedText_;
+  size_t charIndex_ = 0;
+  float timePerChar_ = 0.05f; // Velocidad por defecto
+  float elapsedTime_ = 0.0f;
+  bool isTyping_ = false;
 public:
   DialogueSystem(const sf::Font &font) : dialogueText_(font, "") {
     textBox_.setSize({1200, 200});
@@ -143,7 +149,42 @@ public:
     dialogueText_.setFillColor(sf::Color::White);
     dialogueText_.setPosition({50, 430});
   }
-  void setText(const std::string &text) { dialogueText_.setString(text); isVisible_ = true; }
+
+  void start(const std::string &text, float speed) {
+    fullText_ = text;
+    currentTypedText_.clear();
+    charIndex_ = 0;
+    elapsedTime_ = 0.0f;
+    timePerChar_ = (speed > 0) ? 1.0f / speed : 0.0f;
+    isTyping_ = true;
+    isVisible_ = true;
+    dialogueText_.setString("");
+  }
+
+  void update(float deltaTime) {
+    if (!isTyping_ || charIndex_ >= fullText_.length()) return;
+    elapsedTime_ += deltaTime;
+    if (elapsedTime_ >= timePerChar_) {
+      elapsedTime_ = 0.0f;
+      currentTypedText_ += fullText_[charIndex_];
+      dialogueText_.setString(currentTypedText_);
+      charIndex_++;
+      if (charIndex_ >= fullText_.length()) {
+        isTyping_ = false;
+      }
+    }
+  }
+
+  void finish() {
+    if (isTyping_) {
+      isTyping_ = false;
+      charIndex_ = fullText_.length();
+      currentTypedText_ = fullText_;
+      dialogueText_.setString(fullText_);
+    }
+  }
+
+  bool isFinished() const { return !isTyping_; }
   void hide() { isVisible_ = false; }
   void draw(sf::RenderWindow &window) override {
     if (isVisible_) { window.draw(textBox_); window.draw(dialogueText_); }
@@ -162,7 +203,7 @@ public:
 };
 
 // --- Definiciones de Comandos de la Historia ---
-struct DialogueCmd { std::string speakerId; std::string text; };
+struct DialogueCmd { std::string speakerId; std::string text; float speed; };
 struct ShowCmd { std::string characterId; std::string mode; Transform transform; };
 struct HideCmd { std::string characterId; };
 struct SceneCmd { std::string backgroundName; };
@@ -170,30 +211,34 @@ using StoryCommand = std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd>;
 
 class VisualNovelEngine {
 public:
+  enum class State { IDLE, EXECUTING_COMMAND, WRITING_DIALOGUE, WAITING_FOR_INPUT };
+
   void initialize() {
     window_.create(sf::VideoMode({1200, 600}), "visualNovel");
     window_.setPosition({100, 100});
     window_.setFramerateLimit(60);
     if (!font_.openFromFile("assets/fonts/CaskaydiaCoveNerdFont-Regular.ttf")) { std::cerr << "Error: No se pudo cargar la fuente.\n"; return; }
 
-    // --- CORRECCIÓN DE ORDEN DE DIBUJADO ---
-    createAssets(); // Primero crear y añadir fondos/personajes
-
+    createAssets();
     dialogueSystem_ = std::make_shared<DialogueSystem>(font_);
-    sceneManager_.addComponent("dialogueSystem", dialogueSystem_); // Añadir el diálogo al final para que se dibuje encima
+    sceneManager_.addComponent("dialogueSystem", dialogueSystem_);
 
     buildStoryScript();
-    if (!storyScript_.empty()) executeNextCommand();
+    if (!storyScript_.empty()) { currentState_ = State::EXECUTING_COMMAND; }
   }
 
   void run() {
+    sf::Clock clock;
     while (window_.isOpen()) {
+      sf::Time elapsed = clock.restart();
       handleEvents();
+      update(elapsed.asSeconds());
       render();
     }
   }
 
 private:
+  State currentState_ = State::IDLE;
   sf::RenderWindow window_;
   sf::Font font_;
   SceneManager sceneManager_;
@@ -242,8 +287,20 @@ private:
         storyScript_.push_back(HideCmd{"ana"});
   }
 
+  void update(float deltaTime) {
+    if (currentState_ == State::EXECUTING_COMMAND) {
+      executeNextCommand();
+    }
+    if (currentState_ == State::WRITING_DIALOGUE) {
+      dialogueSystem_->update(deltaTime);
+      if (dialogueSystem_->isFinished()) {
+        currentState_ = State::WAITING_FOR_INPUT;
+      }
+    }
+  }
+
   void executeNextCommand() {
-    if (commandIndex_ >= storyScript_.size()) { dialogueSystem_->hide(); return; }
+    if (commandIndex_ >= storyScript_.size()) { dialogueSystem_->hide(); currentState_ = State::IDLE; return; }
 
     const auto& command = storyScript_[commandIndex_];
     std::visit([this](auto&& arg) {
@@ -263,7 +320,8 @@ private:
       } else if constexpr (std::is_same_v<T, DialogueCmd>) {
         std::string speakerName = (arg.speakerId == "You") ? "" : arg.speakerId;
         if (auto it = characters_.find(arg.speakerId); it != characters_.end()) { speakerName = it->second->getName(); }
-        dialogueSystem_->setText(speakerName.empty() ? arg.text : speakerName + ":\n" + arg.text);
+        dialogueSystem_->start(speakerName.empty() ? arg.text : speakerName + ":\n" + arg.text, arg.speed);
+        currentState_ = State::WRITING_DIALOGUE;
       }
     }, command);
 
@@ -272,12 +330,15 @@ private:
 
   void handleEvents() {
     while (std::optional<sf::Event> event = window_.pollEvent()) {
-        if (event->is<sf::Event::Closed>()) {
-            window_.close();
-        }
+        if (event->is<sf::Event::Closed>()) { window_.close(); }
         if (auto* keyPressed = event->getIf<sf::Event::KeyPressed>()) {
             if (keyPressed->code == sf::Keyboard::Key::Space) {
-                executeNextCommand();
+                if (currentState_ == State::WRITING_DIALOGUE) {
+                    dialogueSystem_->finish();
+                    currentState_ = State::WAITING_FOR_INPUT;
+                } else if (currentState_ == State::WAITING_FOR_INPUT) {
+                    currentState_ = State::EXECUTING_COMMAND;
+                }
             }
         }
     }
