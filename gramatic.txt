@@ -1,19 +1,21 @@
-background ::= <identificador> <(> <string> <)> |  <identificador> <(> <string> <,> <parameters> <)> 
+background ::= ID ( STRING ) |  ID ( STRING , <parameters> ) 
 
-parameter ::= <identificador> <:> <value_parameter>
+parameter ::= ID : <value_parameter>
 
-parameters ::= <parameter> | <parameter> <,> <parameters>
+parameters ::= <parameter> | <parameter> , <parameters>
 
-value_parameter ::= <int> | <float> | <identificador>
+value_parameter ::= INT | FLOAT | ID
 
-define :== <identificador> <string> <{define_modes}> 
+define :== ID STRING <define_modes> 
 
-define_mode :== <identificador> <:> <(> <string> <)> | <identificador> <(> <string> <,> <parameters> <)>
+define_mode :== ID : ( STRING ) | ID ( STRING , <parameters> )
 
-define_modes :== <define_mode> | <define_mode> <,> <define_mode>
+define_modes :== <define_mode> | <define_mode> , <define_mode>
 
-scene :== <identificador> | <identificador> <(> <parameters> <)>
+scene :== ID | ID ( <parameters> )
 
-show :== <identificador> | <identificador> <(> <parameters> <)> | <identificador> <identificador> <(> <parameters> <)>
+show :== ID | ID ( <parameters> ) | ID ID ( <parameters> )
 
-dialogue :== <string> | <string> <(> <parameters> <)> | <identificador> <string> | <identificador> <string> <(> <parameters> <)>
+hide :== ID | ID ( <parameters> )
+
+dialogue :== STRING | STRING ( <parameters> ) | ID STRING | ID STRING ( <parameters> )

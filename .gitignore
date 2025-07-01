@@ -3,3 +3,7 @@ build/
 
 # Clang
 .cache/
+.vscode
+
+# juego bin
+juego

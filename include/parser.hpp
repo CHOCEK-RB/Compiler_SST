@@ -1,82 +1,41 @@
 #pragma once
-#include "lexer.hpp"
+#include <lexer.hpp>
 #include <string>
-#include <unordered_map>
-#include <vector>
+#include <memory>
+#include <ast.hpp>
 
-struct BackgroundInfo{
-  std::string name;
-  std::string imagePath;
-  std::unordered_map<std::string, std::string> parameters;
-};
-
-struct Mode{
-  std::string imagePath;
-  std::unordered_map<std::string, std::string> parameters;
-};
-
-struct CharacterInfo{
-  std::string Internalname;
-  std::string Visiblename;
-  std::vector<std::unordered_map<std::string, Mode>> modes;
-};
-
-struct SceneInfo{
-  std::string BackgroundName;
-  std::unordered_map<std::string, std::string> parameters;
-};
-
-struct showInfo{
-  std::string character;
-  std::string mode;
-  std::unordered_map<std::string, std::string> paremeters;
-};
-
-struct DialogoLinea{
-  std::string speaker;
-  std::string text;
-  std::unordered_map<std::string, std::string>parameters;
-  int linea;
-};
+enum ParameterMode {IMAGE, DIALOGUE};
 
 class Parser {
 public:
   Parser(Lexer &lexer);
-  std::unordered_map<std::string, BackgroundInfo> backgrounds;
-  std::unordered_map<std::string, CharacterInfo> characters;
-  std::vector<SceneInfo> scenes;
-  std::vector<showInfo> shows;
-  std::vector<DialogoLinea> dialogues;
-  void parseProgram();
+
+  std::unique_ptr<ProgramNode> parseProgram();
 
 private:
   Lexer &lexer;
   Token current;
-  //Tabla de Simbolos
-
-
-
-  //////////////////////////////////////////
 
   void advance();
   void expect(TokenType type, const std::string &msg);
 
   void parseStatement();
 
-  void parseBackground();
-  void parseDefine();
-  void parseScene();
-  void parseShow();
-  void parseDialogue();
-  void parseParameters(std::unordered_map<std::string,std::string>&);
-  void parseParameter(std::unordered_map<std::string,std::string>&);
-  void parseModes(std::vector<std::unordered_map<std::string,Mode>>&);  
-  void parseMode(std::vector<std::unordered_map<std::string,Mode>>&);
+  std::unique_ptr<BackgroundNode> parseBackground();
+  std::unique_ptr<CharacterNode> parseDefine();
+  std::unique_ptr<SceneNode> parseScene();
+  std::unique_ptr<ShowNode> parseShow();
+  std::unique_ptr<HideNode> parseHide();
+  std::unique_ptr<DialogueNode> parseDialogue();
+  void parseParameters(ParameterMode mode, std::unordered_map<std::string,ParameterValue> &parametes);
+  void parseParameter(ParameterMode mode, std::unordered_map<std::string,ParameterValue> &parameters);
+ std::unique_ptr<CharacterModeData> parseMode(std::string parentCharacterId);
 
   bool isBackground() { return current.type == TokenType::BACKGROUND; }
   bool isDefine() { return current.type == TokenType::DEFINE; }
   bool isScene() { return current.type == TokenType::SCENE; }
   bool isShow() { return current.type == TokenType::SHOW; }
+  bool isHide() { return current.type == TokenType::HIDE; }
   bool isDialogue() {
     if (current.type == TokenType::STRING)
       return true;

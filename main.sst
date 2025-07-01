@@ -1,16 +1,17 @@
-background ciudad_noche ("ciudad_noche.png", scale: 1.0, opacity: 1.0)
+background ciudad_noche ("./assets/backgrounds/cerezos.jpg", scale: 1.0)
 
 define ana "Ana" {
-  happy: ("ana_happy.png", scale: 1.0),
-  sad: ("ana_sad.png", scale: 0.9),
-  angry: ("ana_angry.png", scale: 1.1)
+  happy: ("./assets/characters/maid/despreocupada.png", scale: 1.1),
+  angry: ("./assets/characters/maid/enojada.png", scale: 1.1)
 }
 
-scene ciudad_noche (transition: fade_lento)
-show ana happy (position: left, transition: slide_fast)
+scene ciudad_noche (scale : 10.0)
+show ana happy (x :10, y : 100)
 
-ana "**¡Hola!** _¿Cómo estás?_ ~~No me ignores~~" (speed: 30)
+ana "**Hola!** Como estas? ~~No me ignores~~" (speed: 30)
 
 "Estoy bien"
 
-ana "¡Qué alegría!"
+ana "Que alegria!"
+
+hide ana

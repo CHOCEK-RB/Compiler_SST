@@ -30,12 +30,12 @@
       "-DDEBUG",
       "-c",
       "-o",
-      "build/obj/main.o",
-      "src/main.cpp"
+      "build/obj/ast.o",
+      "src/ast.cpp"
     ],
     "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
-    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/main.cpp",
-    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/main.o"
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/ast.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/ast.o"
   },
   {
     "arguments": [
@@ -55,5 +55,43 @@
     "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
     "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/lexer.cpp",
     "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/lexer.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-std=c++17",
+      "-Iinclude",
+      "-g",
+      "-O0",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "build/obj/main.o",
+      "src/main.cpp"
+    ],
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/main.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/main.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-std=c++17",
+      "-Iinclude",
+      "-g",
+      "-O0",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "build/obj/sintactic.o",
+      "src/sintactic.cpp"
+    ],
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/sintactic.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/sintactic.o"
   }
 ]

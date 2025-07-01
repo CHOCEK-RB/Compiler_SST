@@ -112,6 +112,8 @@ Token Lexer::realNextToken() {
         return {TokenType::SHOW, lexeme, line};
       if (lexeme == "scene")
         return {TokenType::SCENE, lexeme, line};
+      if (lexeme == "hide")
+        return {TokenType::HIDE, lexeme, line};
       return {TokenType::IDENTIFIER, lexeme, line};
 
     case State::NUMBER: {
