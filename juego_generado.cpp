@@ -30,17 +30,19 @@ public:
   }
 };
 
+struct Transform {
+  sf::Vector2f position = {0.0f, 0.0f};
+  sf::Vector2f scale = {1.0f, 1.0f};
+};
+
 class SceneComponent {
 public:
   virtual ~SceneComponent() = default;
   virtual void draw(sf::RenderWindow &window) = 0;
   virtual void setVisibility(bool visible) { }
-  virtual void setTransform(const struct Transform& t) { }
-};
-
-struct Transform {
-  sf::Vector2f position = {0.0f, 0.0f};
-  sf::Vector2f scale = {1.0f, 1.0f};
+  virtual void setPosition(const sf::Vector2f& pos) { }
+  virtual void setScale(const sf::Vector2f& scale) { }
+  virtual void update(float deltaTime) { }
 };
 
 class SpriteComponent : public SceneComponent {
@@ -58,13 +60,8 @@ public:
   }
   void draw(sf::RenderWindow &window) override { if (isVisible_ && sprite_) window.draw(*sprite_); }
   void setVisibility(bool visible) override { isVisible_ = visible; }
-  void setTransform(const Transform &transform) override {
-    transform_ = transform;
-    if (sprite_) {
-      sprite_->setPosition(transform_.position);
-      sprite_->setScale(transform_.scale);
-    }
-  }
+  void setPosition(const sf::Vector2f& pos) override { transform_.position = pos; if (sprite_) sprite_->setPosition(pos); }
+  void setScale(const sf::Vector2f& scale) override { transform_.scale = scale; if (sprite_) sprite_->setScale(scale); }
 };
 
 class CharacterState {
@@ -100,9 +97,8 @@ public:
     if (isVisible_ && states_.count(currentState_)) { states_[currentState_]->getSprite()->draw(window); }
   }
   void setVisibility(bool visible) override { isVisible_ = visible; }
-  void setTransform(const Transform& t) override {
-      if(states_.count(currentState_)) states_[currentState_]->getSprite()->setTransform(t);
-  }
+  void setPosition(const sf::Vector2f& pos) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setPosition(pos); }
+  void setScale(const sf::Vector2f& scale) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setScale(scale); }
   const std::string& getName() const { return name_; }
 };
 
@@ -113,9 +109,7 @@ class Background : public SceneComponent {
 public:
   Background(const std::string &texturePath, const Transform &transform) {
     texture_ = TextureManager::getInstance().loadTexture(texturePath);
-    if (texture_) {
-      sprite_ = std::make_unique<sf::Sprite>(*texture_);
-    }
+    if (texture_) { sprite_ = std::make_unique<sf::Sprite>(*texture_); }
   }
   void draw(sf::RenderWindow &window) override {
     if (isVisible_ && sprite_) {
@@ -137,7 +131,7 @@ class DialogueSystem : public SceneComponent {
   std::string fullText_;
   std::string currentTypedText_;
   size_t charIndex_ = 0;
-  float timePerChar_ = 0.05f; // Velocidad por defecto
+  float timePerChar_ = 0.05f;
   float elapsedTime_ = 0.0f;
   bool isTyping_ = false;
 public:
@@ -161,7 +155,7 @@ public:
     dialogueText_.setString("");
   }
 
-  void update(float deltaTime) {
+  void update(float deltaTime) override {
     if (!isTyping_ || charIndex_ >= fullText_.length()) return;
     elapsedTime_ += deltaTime;
     if (elapsedTime_ >= timePerChar_) {
@@ -200,11 +194,14 @@ public:
   void draw(sf::RenderWindow &window) {
     for (auto &comp : components_) { comp->draw(window); }
   }
+  void update(float deltaTime) {
+    for (auto &comp : components_) { comp->update(deltaTime); }
+  }
 };
 
 // --- Definiciones de Comandos de la Historia ---
 struct DialogueCmd { std::string speakerId; std::string text; float speed; };
-struct ShowCmd { std::string characterId; std::string mode; Transform transform; };
+struct ShowCmd { std::string characterId; std::string mode; Transform transform; bool scale_overridden; };
 struct HideCmd { std::string characterId; };
 struct SceneCmd { std::string backgroundName; };
 using StoryCommand = std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd>;
@@ -261,7 +258,7 @@ private:
                 {
                     Transform transform;
                     transform.scale = { (float)1.1, (float)1.1 };
-                    character->addState("happy", "./assets/characters/maid/despreocupada.png", transform);
+                    character->addState("careless", "./assets/characters/maid/despreocupada.png", transform);
                 }
                 {
                     Transform transform;
@@ -271,32 +268,63 @@ private:
             characters_["ana"] = character;
             sceneManager_.addComponent("char_" + std::string("ana"), character);
         }
+        {
+            auto character = std::make_shared<Character>("rox", "Roxana");
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.5, (float)0.5 };
+                    character->addState("normal", "./assets/characters/personaje2/normal.png", transform);
+                }
+            characters_["rox"] = character;
+            sceneManager_.addComponent("char_" + std::string("rox"), character);
+        }
   }
 
   void buildStoryScript() {
         storyScript_.push_back(SceneCmd{"ciudad_noche"});
         {
             Transform t;
+            bool scale_overridden = false;
             t.position.y = 100;
             t.position.x = 10;
-            storyScript_.push_back(ShowCmd{"ana", "happy", t});
+            storyScript_.push_back(ShowCmd{"ana", "careless", t, scale_overridden});
         }
-        storyScript_.push_back(DialogueCmd{"ana", R"(**Hola!** Como estas? ~~No me ignores~~)"});
-        storyScript_.push_back(DialogueCmd{"You", R"(Estoy bien)"});
-        storyScript_.push_back(DialogueCmd{"ana", R"(Que alegria!)"});
+        {
+            Transform t;
+            bool scale_overridden = false;
+            t.position.y = 100;
+            t.position.x = 500;
+            storyScript_.push_back(ShowCmd{"rox", "normal", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            speed = static_cast<float>(1);
+            storyScript_.push_back(DialogueCmd{"ana", R"(**Hola!** Como estas? ~~No me ignores~~)", speed});
+        }
         storyScript_.push_back(HideCmd{"ana"});
+        {
+            Transform t;
+            bool scale_overridden = false;
+            t.position.y = 100;
+            t.position.x = 10;
+            storyScript_.push_back(ShowCmd{"ana", "angry", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(Estoy bien)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            speed = static_cast<float>(20);
+            storyScript_.push_back(DialogueCmd{"ana", R"(Que alegria!)", speed});
+        }
   }
 
   void update(float deltaTime) {
     if (currentState_ == State::EXECUTING_COMMAND) {
       executeNextCommand();
     }
-    if (currentState_ == State::WRITING_DIALOGUE) {
-      dialogueSystem_->update(deltaTime);
-      if (dialogueSystem_->isFinished()) {
-        currentState_ = State::WAITING_FOR_INPUT;
-      }
-    }
+    sceneManager_.update(deltaTime);
   }
 
   void executeNextCommand() {
@@ -305,23 +333,29 @@ private:
     const auto& command = storyScript_[commandIndex_];
     std::visit([this](auto&& arg) {
       using T = std::decay_t<decltype(arg)>;
-      if constexpr (std::is_same_v<T, SceneCmd>) {
-        if (backgrounds_.count(currentBackground_)) backgrounds_[currentBackground_]->setVisibility(false);
-        if (backgrounds_.count(arg.backgroundName)) backgrounds_[arg.backgroundName]->setVisibility(true);
-        currentBackground_ = arg.backgroundName;
-      } else if constexpr (std::is_same_v<T, ShowCmd>) {
-        if (auto it = characters_.find(arg.characterId); it != characters_.end()) {
-          it->second->setState(arg.mode);
-          it->second->setTransform(arg.transform);
-          it->second->setVisibility(true);
-        }
-      } else if constexpr (std::is_same_v<T, HideCmd>) {
-        if (auto it = characters_.find(arg.characterId); it != characters_.end()) { it->second->setVisibility(false); }
-      } else if constexpr (std::is_same_v<T, DialogueCmd>) {
+      if constexpr (std::is_same_v<T, DialogueCmd>) {
         std::string speakerName = (arg.speakerId == "You") ? "" : arg.speakerId;
         if (auto it = characters_.find(arg.speakerId); it != characters_.end()) { speakerName = it->second->getName(); }
         dialogueSystem_->start(speakerName.empty() ? arg.text : speakerName + ":\n" + arg.text, arg.speed);
         currentState_ = State::WRITING_DIALOGUE;
+      } else {
+         if constexpr (std::is_same_v<T, SceneCmd>) {
+           if (backgrounds_.count(currentBackground_)) backgrounds_[currentBackground_]->setVisibility(false);
+           if (backgrounds_.count(arg.backgroundName)) backgrounds_[arg.backgroundName]->setVisibility(true);
+           currentBackground_ = arg.backgroundName;
+         } else if constexpr (std::is_same_v<T, ShowCmd>) {
+           if (auto it = characters_.find(arg.characterId); it != characters_.end()) {
+             it->second->setState(arg.mode);
+             it->second->setPosition(arg.transform.position);
+             if (arg.scale_overridden) {
+                it->second->setScale(arg.transform.scale);
+             }
+             it->second->setVisibility(true);
+           }
+         } else if constexpr (std::is_same_v<T, HideCmd>) {
+           if (auto it = characters_.find(arg.characterId); it != characters_.end()) { it->second->setVisibility(false); }
+         }
+         currentState_ = State::EXECUTING_COMMAND;
       }
     }, command);
 

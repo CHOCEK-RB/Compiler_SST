@@ -1,14 +1,25 @@
 background ciudad_noche ("./assets/backgrounds/cerezos.jpg")
 define ana "Ana" {
-    happy: ("./assets/characters/maid/despreocupada.png", scale: 1.1),
+    careless: ("./assets/characters/maid/despreocupada.png", scale: 1.1),
     angry: ("./assets/characters/maid/enojada.png", scale: 1.1)
 }
 
+define rox "Roxana" {
+    normal: ("./assets/characters/personaje2/normal.png", scale: 0.5),
+}
+
 scene ciudad_noche
-show ana happy (x: 10, y: 100)
+
+show ana careless (x: 10, y: 100)
+show rox normal (x: 500, y: 100)
 
 ana "**Hola!** Como estas? ~~No me ignores~~" (speed: 1)
+
+hide ana
+
+show ana angry (x: 10, y: 100)
+
 You "Estoy bien"
 ana "Que alegria!" (speed: 20)
 
-hide ana
+

@@ -55,17 +55,19 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "  }\n";
     out << "};\n\n";
 
+    out << "struct Transform {\n";
+    out << "  sf::Vector2f position = {0.0f, 0.0f};\n";
+    out << "  sf::Vector2f scale = {1.0f, 1.0f};\n";
+    out << "};\n\n";
+
     out << "class SceneComponent {\n";
     out << "public:\n";
     out << "  virtual ~SceneComponent() = default;\n";
     out << "  virtual void draw(sf::RenderWindow &window) = 0;\n";
     out << "  virtual void setVisibility(bool visible) { }\n";
-    out << "  virtual void setTransform(const struct Transform& t) { }\n";
-    out << "};\n\n";
-
-    out << "struct Transform {\n";
-    out << "  sf::Vector2f position = {0.0f, 0.0f};\n";
-    out << "  sf::Vector2f scale = {1.0f, 1.0f};\n";
+    out << "  virtual void setPosition(const sf::Vector2f& pos) { }\n";
+    out << "  virtual void setScale(const sf::Vector2f& scale) { }\n";
+    out << "  virtual void update(float deltaTime) { }\n";
     out << "};\n\n";
 
     out << "class SpriteComponent : public SceneComponent {\n";
@@ -83,13 +85,8 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "  }\n";
     out << "  void draw(sf::RenderWindow &window) override { if (isVisible_ && sprite_) window.draw(*sprite_); }\n";
     out << "  void setVisibility(bool visible) override { isVisible_ = visible; }\n";
-    out << "  void setTransform(const Transform &transform) override {\n";
-    out << "    transform_ = transform;\n";
-    out << "    if (sprite_) {\n";
-    out << "      sprite_->setPosition(transform_.position);\n";
-    out << "      sprite_->setScale(transform_.scale);\n";
-    out << "    }\n";
-    out << "  }\n";
+    out << "  void setPosition(const sf::Vector2f& pos) override { transform_.position = pos; if (sprite_) sprite_->setPosition(pos); }\n";
+    out << "  void setScale(const sf::Vector2f& scale) override { transform_.scale = scale; if (sprite_) sprite_->setScale(scale); }\n";
     out << "};\n\n";
 
     out << "class CharacterState {\n";
@@ -125,9 +122,8 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "    if (isVisible_ && states_.count(currentState_)) { states_[currentState_]->getSprite()->draw(window); }\n";
     out << "  }\n";
     out << "  void setVisibility(bool visible) override { isVisible_ = visible; }\n";
-    out << "  void setTransform(const Transform& t) override {\n";
-    out << "      if(states_.count(currentState_)) states_[currentState_]->getSprite()->setTransform(t);\n";
-    out << "  }\n";
+    out << "  void setPosition(const sf::Vector2f& pos) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setPosition(pos); }\n";
+    out << "  void setScale(const sf::Vector2f& scale) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setScale(scale); }\n";
     out << "  const std::string& getName() const { return name_; }\n";
     out << "};\n\n";
 
@@ -138,9 +134,7 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "public:\n";
     out << "  Background(const std::string &texturePath, const Transform &transform) {\n";
     out << "    texture_ = TextureManager::getInstance().loadTexture(texturePath);\n";
-    out << "    if (texture_) {\n";
-    out << "      sprite_ = std::make_unique<sf::Sprite>(*texture_);\n";
-    out << "    }\n";
+    out << "    if (texture_) { sprite_ = std::make_unique<sf::Sprite>(*texture_); }\n";
     out << "  }\n";
     out << "  void draw(sf::RenderWindow &window) override {\n";
     out << "    if (isVisible_ && sprite_) {\n";
@@ -162,7 +156,7 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "  std::string fullText_;\n";
     out << "  std::string currentTypedText_;\n";
     out << "  size_t charIndex_ = 0;\n";
-    out << "  float timePerChar_ = 0.05f; // Velocidad por defecto\n";
+    out << "  float timePerChar_ = 0.05f;\n";
     out << "  float elapsedTime_ = 0.0f;\n";
     out << "  bool isTyping_ = false;\n";
     out << "public:\n";
@@ -184,7 +178,7 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "    isVisible_ = true;\n";
     out << "    dialogueText_.setString(\"\");\n";
     out << "  }\n\n";
-    out << "  void update(float deltaTime) {\n";
+    out << "  void update(float deltaTime) override {\n";
     out << "    if (!isTyping_ || charIndex_ >= fullText_.length()) return;\n";
     out << "    elapsedTime_ += deltaTime;\n";
     out << "    if (elapsedTime_ >= timePerChar_) {\n";
@@ -221,11 +215,14 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "  void draw(sf::RenderWindow &window) {\n";
     out << "    for (auto &comp : components_) { comp->draw(window); }\n";
     out << "  }\n";
+    out << "  void update(float deltaTime) {\n";
+    out << "    for (auto &comp : components_) { comp->update(deltaTime); }\n";
+    out << "  }\n";
     out << "};\n\n";
 
     out << "// --- Definiciones de Comandos de la Historia ---\n";
     out << "struct DialogueCmd { std::string speakerId; std::string text; float speed; };\n";
-    out << "struct ShowCmd { std::string characterId; std::string mode; Transform transform; };\n";
+    out << "struct ShowCmd { std::string characterId; std::string mode; Transform transform; bool scale_overridden; };\n";
     out << "struct HideCmd { std::string characterId; };\n";
     out << "struct SceneCmd { std::string backgroundName; };\n";
     out << "using StoryCommand = std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd>;\n\n";
@@ -286,12 +283,7 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "    if (currentState_ == State::EXECUTING_COMMAND) {\n";
     out << "      executeNextCommand();\n";
     out << "    }\n";
-    out << "    if (currentState_ == State::WRITING_DIALOGUE) {\n";
-    out << "      dialogueSystem_->update(deltaTime);\n";
-    out << "      if (dialogueSystem_->isFinished()) {\n";
-    out << "        currentState_ = State::WAITING_FOR_INPUT;\n";
-    out << "      }\n";
-    out << "    }\n";
+    out << "    sceneManager_.update(deltaTime);\n";
     out << "  }\n\n";
 
     out << "  void executeNextCommand() {\n";
@@ -299,23 +291,29 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "    const auto& command = storyScript_[commandIndex_];\n";
     out << "    std::visit([this](auto&& arg) {\n";
     out << "      using T = std::decay_t<decltype(arg)>;\n";
-    out << "      if constexpr (std::is_same_v<T, SceneCmd>) {\n";
-    out << "        if (backgrounds_.count(currentBackground_)) backgrounds_[currentBackground_]->setVisibility(false);\n";
-    out << "        if (backgrounds_.count(arg.backgroundName)) backgrounds_[arg.backgroundName]->setVisibility(true);\n";
-    out << "        currentBackground_ = arg.backgroundName;\n";
-    out << "      } else if constexpr (std::is_same_v<T, ShowCmd>) {\n";
-    out << "        if (auto it = characters_.find(arg.characterId); it != characters_.end()) {\n";
-    out << "          it->second->setState(arg.mode);\n";
-    out << "          it->second->setTransform(arg.transform);\n";
-    out << "          it->second->setVisibility(true);\n";
-    out << "        }\n";
-    out << "      } else if constexpr (std::is_same_v<T, HideCmd>) {\n";
-    out << "        if (auto it = characters_.find(arg.characterId); it != characters_.end()) { it->second->setVisibility(false); }\n";
-    out << "      } else if constexpr (std::is_same_v<T, DialogueCmd>) {\n";
+    out << "      if constexpr (std::is_same_v<T, DialogueCmd>) {\n";
     out << "        std::string speakerName = (arg.speakerId == \"You\") ? \"\" : arg.speakerId;\n";
     out << "        if (auto it = characters_.find(arg.speakerId); it != characters_.end()) { speakerName = it->second->getName(); }\n";
     out << "        dialogueSystem_->start(speakerName.empty() ? arg.text : speakerName + \":\\n\" + arg.text, arg.speed);\n";
     out << "        currentState_ = State::WRITING_DIALOGUE;\n";
+    out << "      } else {\n";
+    out << "         if constexpr (std::is_same_v<T, SceneCmd>) {\n";
+    out << "           if (backgrounds_.count(currentBackground_)) backgrounds_[currentBackground_]->setVisibility(false);\n";
+    out << "           if (backgrounds_.count(arg.backgroundName)) backgrounds_[arg.backgroundName]->setVisibility(true);\n";
+    out << "           currentBackground_ = arg.backgroundName;\n";
+    out << "         } else if constexpr (std::is_same_v<T, ShowCmd>) {\n";
+    out << "           if (auto it = characters_.find(arg.characterId); it != characters_.end()) {\n";
+    out << "             it->second->setState(arg.mode);\n";
+    out << "             it->second->setPosition(arg.transform.position);\n";
+    out << "             if (arg.scale_overridden) {\n";
+    out << "                it->second->setScale(arg.transform.scale);\n";
+    out << "             }\n";
+    out << "             it->second->setVisibility(true);\n";
+    out << "           }\n";
+    out << "         } else if constexpr (std::is_same_v<T, HideCmd>) {\n";
+    out << "           if (auto it = characters_.find(arg.characterId); it != characters_.end()) { it->second->setVisibility(false); }\n";
+    out << "         }\n";
+    out << "         currentState_ = State::EXECUTING_COMMAND;\n";
     out << "      }\n";
     out << "    }, command);\n\n";
     out << "    commandIndex_++;\n";
@@ -336,7 +334,6 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "        }\n";
     out << "    }\n";
     out << "  }\n\n";
-
     out << "  void render() { window_.clear(sf::Color::Black); sceneManager_.draw(window_); window_.display(); }\n";
     out << "};\n\n";
 
@@ -347,6 +344,8 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     out << "    return 0;\n";
     out << "}\n";
 }
+
+// --- GENERACIÓN DE CÓDIGO PARA CADA NODO DEL AST ---
 
 void BackgroundNode::generateCode(std::ostream &out, int indent) const {
     out << makeIndent(indent) << "{\n";
@@ -383,14 +382,18 @@ void SceneNode::generateCode(std::ostream &out, int indent) const {
 void ShowNode::generateCode(std::ostream &out, int indent) const {
     out << makeIndent(indent) << "{\n";
     out << makeIndent(indent + 1) << "Transform t;\n";
-    for (const auto &[key, val] : parameters) {
+    out << makeIndent(indent + 1) << "bool scale_overridden = false;\n";
+    for (const auto &[key, val] : this->parameters) {
         if (key == "x") {
             out << makeIndent(indent + 1) << "t.position.x = " << std::get<double>(val) << ";\n";
         } else if (key == "y") {
             out << makeIndent(indent + 1) << "t.position.y = " << std::get<double>(val) << ";\n";
+        } else if (key == "scale") {
+            out << makeIndent(indent + 1) << "t.scale = { (float)" << std::get<double>(val) << ", (float)" << std::get<double>(val) << " };\n";
+            out << makeIndent(indent + 1) << "scale_overridden = true;\n";
         }
     }
-    out << makeIndent(indent + 1) << "storyScript_.push_back(ShowCmd{\"" << characterId << "\", \"" << mode << "\", t});\n";
+    out << makeIndent(indent + 1) << "storyScript_.push_back(ShowCmd{\"" << characterId << "\", \"" << mode << "\", t, scale_overridden});\n";
     out << makeIndent(indent) << "}\n";
 }
 
@@ -399,5 +402,13 @@ void HideNode::generateCode(std::ostream &out, int indent) const {
 }
 
 void DialogueNode::generateCode(std::ostream &out, int indent) const {
-    out << makeIndent(indent) << "storyScript_.push_back(DialogueCmd{\"" << speaker << "\", R\"(" << text << ")\"});\n";
+    out << makeIndent(indent) << "{\n";
+    out << makeIndent(indent + 1) << "float speed = 30.0f; // Velocidad por defecto\n";
+    for (const auto& [key, val] : this->parameters) {
+        if (key == "speed") {
+            out << makeIndent(indent + 1) << "speed = static_cast<float>(" << std::get<double>(val) << ");\n";
+        }
+    }
+    out << makeIndent(indent + 1) << "storyScript_.push_back(DialogueCmd{\"" << speaker << "\", R\"(" << text << ")\", speed});\n";
+    out << makeIndent(indent) << "}\n";
 }
