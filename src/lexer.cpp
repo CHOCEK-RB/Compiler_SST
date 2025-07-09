@@ -46,7 +46,6 @@ Token Lexer::nextToken() {
   return realNextToken();
 }
 
-
 Token Lexer::realNextToken() {
   std::string lexeme;
   State state = State::START;
@@ -55,6 +54,8 @@ Token Lexer::realNextToken() {
     switch (state) {
     case State::START:
       if (std::isspace(currentChar)) {
+        if (currentChar == '\n')
+          ++line;
         advance();
       } else if (std::isalpha(currentChar) || currentChar == '_') {
         lexeme += currentChar;
@@ -67,6 +68,15 @@ Token Lexer::realNextToken() {
       } else if (currentChar == '"') {
         advance();
         state = State::STRING;
+      } else if (currentChar == '#') {
+        advance();
+
+        while (!endOfFile && currentChar != '\n') {
+          lexeme += currentChar;
+          advance();
+        }
+
+        return {TokenType::COMMENT, lexeme, line};
       } else {
         TokenType type;
         switch (currentChar) {
@@ -114,6 +124,12 @@ Token Lexer::realNextToken() {
         return {TokenType::SCENE, lexeme, line};
       if (lexeme == "hide")
         return {TokenType::HIDE, lexeme, line};
+      if (lexeme == "music")
+        return {TokenType::MUSIC, lexeme, line};
+      if (lexeme == "play")
+        return {TokenType::PLAY, lexeme, line};
+      if (lexeme == "stop")
+        return {TokenType::STOP, lexeme, line};
       return {TokenType::IDENTIFIER, lexeme, line};
 
     case State::NUMBER: {

@@ -4,8 +4,7 @@
 #include <stdexcept>
 #include <token.hpp>
 
-void checkParameterImage(const std::string &name,
-                         const std::string &value,
+void checkParameterImage(const std::string &name, const std::string &value,
                          ParameterValue &buffValue) {
   if (name == "x" || name == "y" || name == "scale") {
     try {
@@ -23,8 +22,7 @@ void checkParameterImage(const std::string &name,
   throw std::runtime_error("[Error: No existe el parametro : " + name + "]");
 }
 
-void checkParameterDialogue(const std::string &name,
-                            const std::string &value,
+void checkParameterDialogue(const std::string &name, const std::string &value,
                             ParameterValue &buffValue) {
   if (name == "size" || name == "font" || name == "speed") {
     try {
@@ -57,7 +55,11 @@ Parser::Parser(Lexer &lexer)
 
 void Parser::advance() {
   current = lexer.nextToken();
-  std::cout << tokenToString(current.type) << "\n";
+  while (current.type == TokenType::COMMENT) {
+    current = lexer.nextToken();
+    std::cout << tokenToString(current.type) << ", Line : " << current.line
+              << "\n";
+  }
 }
 
 void Parser::expect(TokenType type, const std::string &msg) {
@@ -84,6 +86,12 @@ std::unique_ptr<ProgramNode> Parser::parseProgram() {
       program->statements.push_back(parseHide());
     } else if (isDialogue()) {
       program->statements.push_back(parseDialogue());
+    } else if (isMusic()) {
+      program->statements.push_back(parseMusic());
+    } else if (isPlay()) {
+      program->statements.push_back(parsePlay());
+    } else if (isStop()) {
+      program->statements.push_back(parseStop());
     } else {
       throw std::runtime_error("[Línea " + std::to_string(current.line) +
                                "] Sentencia inválida");
@@ -95,7 +103,7 @@ std::unique_ptr<ProgramNode> Parser::parseProgram() {
 std::unique_ptr<BackgroundNode> Parser::parseBackground() {
   auto node = std::make_unique<BackgroundNode>();
 
-  advance(); // Consumir 'background'
+  advance();
   node->name = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba nombre de fondo");
 
@@ -115,7 +123,7 @@ std::unique_ptr<BackgroundNode> Parser::parseBackground() {
 std::unique_ptr<CharacterNode> Parser::parseDefine() {
   auto node = std::make_unique<CharacterNode>();
 
-  advance(); // Consumir 'define'
+  advance();
   node->id = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba ID de personaje");
 
@@ -125,7 +133,7 @@ std::unique_ptr<CharacterNode> Parser::parseDefine() {
   expect(TokenType::LBRACKET, "Se esperaba '{'");
   while (current.type != TokenType::RBRACKET &&
          current.type != TokenType::END_OF_FILE) {
-    node->modes.push_back(parseMode(node->id));
+    node->modes.push_back(parseMode());
 
     if (current.type == TokenType::COMMA) {
       advance();
@@ -139,7 +147,7 @@ std::unique_ptr<CharacterNode> Parser::parseDefine() {
 std::unique_ptr<SceneNode> Parser::parseScene() {
   auto node = std::make_unique<SceneNode>();
 
-  advance(); // consume 'scene'
+  advance();
   node->name = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba nombre de escena o fondo");
 
@@ -164,13 +172,12 @@ std::unique_ptr<ShowNode> Parser::parseShow() {
   node->mode = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba el modo del personaje");
 
-  // std::unordered_map<std::string, ParameterValue> parametros;
   if (current.type == TokenType::LPAREN) {
     advance();
     parseParameters(IMAGE, node->parameters);
     expect(TokenType::RPAREN, "Se esperaba ')'");
   }
-  // node->parameters = parametros;
+
   return node;
 }
 
@@ -207,7 +214,7 @@ std::unique_ptr<DialogueNode> Parser::parseDialogue() {
   } else if (current.type == TokenType::IDENTIFIER) {
     node->speaker = current.value;
     advance();
-    
+
     node->text = current.value;
     expect(TokenType::STRING, "Se esperaba diálogo entre comillas");
 
@@ -225,7 +232,8 @@ std::unique_ptr<DialogueNode> Parser::parseDialogue() {
 }
 
 void Parser::parseParameters(
-    ParameterMode mode, std::unordered_map<std::string, ParameterValue> &parameters) {
+    ParameterMode mode,
+    std::unordered_map<std::string, ParameterValue> &parameters) {
   parseParameter(mode, parameters);
   while (current.type == TokenType::COMMA) {
     advance();
@@ -234,7 +242,8 @@ void Parser::parseParameters(
 }
 
 void Parser::parseParameter(
-    ParameterMode mode, std::unordered_map<std::string, ParameterValue> &parameters) {
+    ParameterMode mode,
+    std::unordered_map<std::string, ParameterValue> &parameters) {
   std::string name = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba nombre de parámetro");
   expect(TokenType::COLON, "Se esperaba ':'");
@@ -242,7 +251,7 @@ void Parser::parseParameter(
       current.type == TokenType::IDENTIFIER ||
       current.type == TokenType::STRING) {
     ParameterValue realValue;
-    
+
     if (mode == IMAGE)
       checkParameterImage(name, current.value, realValue);
     else if (mode == DIALOGUE)
@@ -255,7 +264,7 @@ void Parser::parseParameter(
   }
 }
 
-std::unique_ptr<CharacterModeData> Parser::parseMode(std::string parentCharacterId) {
+std::unique_ptr<CharacterModeData> Parser::parseMode() {
   auto node = std::make_unique<CharacterModeData>();
   node->name = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba nombre de modo");
@@ -265,7 +274,6 @@ std::unique_ptr<CharacterModeData> Parser::parseMode(std::string parentCharacter
 
   node->imagePath = current.value;
   expect(TokenType::STRING, "Se esperaba ruta de imagen");
-  
 
   if (current.type == TokenType::COMMA) {
     advance();
@@ -273,5 +281,36 @@ std::unique_ptr<CharacterModeData> Parser::parseMode(std::string parentCharacter
   }
 
   expect(TokenType::RPAREN, "Se esperaba ')'");
+
+  return node;
+}
+
+std::unique_ptr<MusicNode> Parser::parseMusic() {
+  auto node = std::make_unique<MusicNode>();
+
+  advance();
+  node->id = current.value;
+  expect(TokenType::IDENTIFIER, "Se esperaba un ID para la música");
+
+  node->filePath = current.value;
+  expect(TokenType::STRING, "Se esperaba la ruta del archivo de música");
+  return node;
+}
+
+std::unique_ptr<PlayNode> Parser::parsePlay() {
+  auto node = std::make_unique<PlayNode>();
+
+  advance();
+  node->musicId = current.value;
+  expect(TokenType::IDENTIFIER, "Se esperaba el ID de la música a reproducir");
+  return node;
+}
+
+std::unique_ptr<StopNode> Parser::parseStop() {
+  auto node = std::make_unique<StopNode>();
+
+  advance();
+  node->musicId = current.value;
+  expect(TokenType::IDENTIFIER, "Se esperaba el ID de la música a detener");
   return node;
 }

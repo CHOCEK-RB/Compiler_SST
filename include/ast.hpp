@@ -5,9 +5,6 @@
 #include <variant>
 #include <vector>
 
-// No forward declaration needed for Character anymore in ast.hpp itself for CharacterModeNode.
-// The Character class is part of the generated code, not a type directly linked in ASTNode definitions.
-
 using ParameterValue = std::variant<int, double, std::string>;
 using Parameters = std::unordered_map<std::string, ParameterValue>;
 
@@ -24,6 +21,25 @@ public:
   void generateCode(std::ostream &out, int indent) const override;
 };
 
+class MusicNode : public ASTNode {
+public:
+  std::string id;
+  std::string filePath;
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
+class PlayNode : public ASTNode {
+public:
+  std::string musicId;
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
+class StopNode : public ASTNode {
+public:
+  std::string musicId;
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
 class BackgroundNode : public ASTNode {
 public:
   std::string name;
@@ -33,18 +49,16 @@ public:
   void generateCode(std::ostream &out, int indent) const override;
 };
 
-struct CharacterModeData { // Renamed from CharacterModeNode to reflect it's now a data struct
+struct CharacterModeData {
   std::string name;
   std::string imagePath;
   Parameters parameters;
-  // No need for parentCharacterId here, as CharacterNode will use this data directly.
 };
 
 class CharacterNode : public ASTNode {
 public:
   std::string id;
   std::string displayName;
-  // This will store the CharacterModeNodes, which now contain their parent ID.
   std::vector<std::unique_ptr<CharacterModeData>> modes;
 
   void generateCode(std::ostream &out, int indent) const override;

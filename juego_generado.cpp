@@ -1,4 +1,5 @@
 #include <SFML/Graphics.hpp>
+#include <SFML/Audio.hpp>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -7,6 +8,16 @@
 #include <variant>
 #include <optional>
 
+constexpr int WINDOW_WEIGHT = 1600;
+constexpr int WINDOW_HEIGHT = 800;
+constexpr int TEXT_BOX_POSX = 0;
+constexpr int TEXT_BOX_POSY = 500;
+constexpr int TEXT_BOX_WEIGHT = WINDOW_WEIGHT;
+constexpr int TEXT_BOX_HEIGHT = WINDOW_HEIGHT - TEXT_BOX_POSY;
+constexpr int DIALOGUE_SIZE = 36;
+constexpr int DIALOGUE_POSX = TEXT_BOX_POSX + 20;
+constexpr int DIALOGUE_POSY = TEXT_BOX_POSY + 20;
+constexpr int TEXT_BOX_PADDING = 200;
 // --- Clases del Motor de la Novela Visual ---
 
 class TextureManager {
@@ -42,6 +53,7 @@ public:
   virtual void setVisibility(bool visible) { }
   virtual void setPosition(const sf::Vector2f& pos) { }
   virtual void setScale(const sf::Vector2f& scale) { }
+  virtual void setFocused(bool isFocused) { }
   virtual void update(float deltaTime) { }
 };
 
@@ -62,6 +74,7 @@ public:
   void setVisibility(bool visible) override { isVisible_ = visible; }
   void setPosition(const sf::Vector2f& pos) override { transform_.position = pos; if (sprite_) sprite_->setPosition(pos); }
   void setScale(const sf::Vector2f& scale) override { transform_.scale = scale; if (sprite_) sprite_->setScale(scale); }
+  void setFocused(bool isFocused) override { if(sprite_) sprite_->setColor(isFocused ? sf::Color::White : sf::Color(128, 128, 128)); }
 };
 
 class CharacterState {
@@ -99,6 +112,7 @@ public:
   void setVisibility(bool visible) override { isVisible_ = visible; }
   void setPosition(const sf::Vector2f& pos) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setPosition(pos); }
   void setScale(const sf::Vector2f& scale) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setScale(scale); }
+  void setFocused(bool isFocused) override { if (states_.count(currentState_)) states_[currentState_]->getSprite()->setFocused(isFocused); }
   const std::string& getName() const { return name_; }
 };
 
@@ -134,18 +148,50 @@ class DialogueSystem : public SceneComponent {
   float timePerChar_ = 0.05f;
   float elapsedTime_ = 0.0f;
   bool isTyping_ = false;
+  std::string wrapText(const std::string& text, unsigned int lineLength, const sf::Font& font, unsigned int charSize) {
+      std::string wrappedText;
+      std::string currentLine;
+      std::string word;
+      sf::Text tempText(font, "", charSize);
+      for (char c : text) {
+          if (c == ' ' || c == '\n') {
+              tempText.setString(currentLine + word + ' ');
+              if (tempText.getLocalBounds().size.x > lineLength) {
+                  wrappedText += currentLine + '\n';
+                  currentLine = word + ' ';
+              } else {
+                  currentLine += word + ' ';
+              }
+              word.clear();
+              if (c == '\n') {
+                  wrappedText += currentLine;
+                  currentLine.clear();
+              }
+          } else {
+              word += c;
+          }
+      }
+      tempText.setString(currentLine + word);
+      if (tempText.getLocalBounds().size.x > lineLength) {
+          wrappedText += currentLine + '\n' + word;
+      } else {
+          wrappedText += currentLine + word;
+      }
+      return wrappedText;
+  }
+
 public:
   DialogueSystem(const sf::Font &font) : dialogueText_(font, "") {
-    textBox_.setSize({1200, 200});
-    textBox_.setPosition({0, 400});
+    textBox_.setSize({TEXT_BOX_WEIGHT, TEXT_BOX_HEIGHT});
+    textBox_.setPosition({TEXT_BOX_POSX, TEXT_BOX_POSY});
     textBox_.setFillColor(sf::Color(0, 0, 0, 200));
-    dialogueText_.setCharacterSize(28);
+    dialogueText_.setCharacterSize(DIALOGUE_SIZE);
     dialogueText_.setFillColor(sf::Color::White);
-    dialogueText_.setPosition({50, 430});
+    dialogueText_.setPosition({DIALOGUE_POSX, DIALOGUE_POSY});
   }
 
   void start(const std::string &text, float speed) {
-    fullText_ = text;
+    fullText_ = wrapText(text, TEXT_BOX_WEIGHT - TEXT_BOX_PADDING, dialogueText_.getFont(), dialogueText_.getCharacterSize());
     currentTypedText_.clear();
     charIndex_ = 0;
     elapsedTime_ = 0.0f;
@@ -204,14 +250,16 @@ struct DialogueCmd { std::string speakerId; std::string text; float speed; };
 struct ShowCmd { std::string characterId; std::string mode; Transform transform; bool scale_overridden; };
 struct HideCmd { std::string characterId; };
 struct SceneCmd { std::string backgroundName; };
-using StoryCommand = std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd>;
+struct PlayCmd { std::string musicId; };
+struct StopCmd { std::string musicId; };
+using StoryCommand = std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd, PlayCmd, StopCmd>;
 
 class VisualNovelEngine {
 public:
   enum class State { IDLE, EXECUTING_COMMAND, WRITING_DIALOGUE, WAITING_FOR_INPUT };
 
   void initialize() {
-    window_.create(sf::VideoMode({1200, 600}), "visualNovel");
+    window_.create(sf::VideoMode({WINDOW_WEIGHT, WINDOW_HEIGHT}), "visualNovel");
     window_.setPosition({100, 100});
     window_.setFramerateLimit(60);
     if (!font_.openFromFile("assets/fonts/CaskaydiaCoveNerdFont-Regular.ttf")) { std::cerr << "Error: No se pudo cargar la fuente.\n"; return; }
@@ -239,85 +287,222 @@ private:
   sf::RenderWindow window_;
   sf::Font font_;
   SceneManager sceneManager_;
+
   std::map<std::string, std::shared_ptr<Character>> characters_;
   std::map<std::string, std::shared_ptr<Background>> backgrounds_;
+  std::map<std::string, std::shared_ptr<sf::Music>> musicTracks_;
+
   std::shared_ptr<DialogueSystem> dialogueSystem_;
   std::vector<StoryCommand> storyScript_;
   size_t commandIndex_ = 0;
   std::string currentBackground_;
-
+  std::string currentMusicId_;
   void createAssets() {
         {
             Transform transform;
-            auto bg = std::make_shared<Background>("./assets/backgrounds/cerezos.jpg", transform);
-            backgrounds_["ciudad_noche"] = bg;
-            sceneManager_.addComponent("bg_" + std::string("ciudad_noche"), bg);
+            auto bg = std::make_shared<Background>("./assets/backgrounds/smp_front_evening2.png", transform);
+            backgrounds_["patio_escuela"] = bg;
+            sceneManager_.addComponent("bg_" + std::string("patio_escuela"), bg);
         }
         {
-            auto character = std::make_shared<Character>("ana", "Ana");
-                {
-                    Transform transform;
-                    transform.scale = { (float)1.1, (float)1.1 };
-                    character->addState("careless", "./assets/characters/maid/despreocupada.png", transform);
-                }
-                {
-                    Transform transform;
-                    transform.scale = { (float)1.1, (float)1.1 };
-                    character->addState("angry", "./assets/characters/maid/enojada.png", transform);
-                }
-            characters_["ana"] = character;
-            sceneManager_.addComponent("char_" + std::string("ana"), character);
+            Transform transform;
+            auto bg = std::make_shared<Background>("./assets/backgrounds/smp_classroom1_evening1.png", transform);
+            backgrounds_["salon_clases"] = bg;
+            sceneManager_.addComponent("bg_" + std::string("salon_clases"), bg);
         }
         {
-            auto character = std::make_shared<Character>("rox", "Roxana");
+            Transform transform;
+            auto bg = std::make_shared<Background>("./assets/backgrounds/smp_roof_evening1.png", transform);
+            backgrounds_["azotea"] = bg;
+            sceneManager_.addComponent("bg_" + std::string("azotea"), bg);
+        }
+        {
+            auto music = std::make_shared<sf::Music>();
+            if (music->openFromFile("./assets/music/Relax.wav")) {
+                musicTracks_["tema_principal"] = music;
+            } else { std::cerr << "Error al cargar música: ./assets/music/Relax.wav\n"; }
+        }
+        {
+            auto music = std::make_shared<sf::Music>();
+            if (music->openFromFile("./assets/music/Death.wav")) {
+                musicTracks_["tema_melancolico"] = music;
+            } else { std::cerr << "Error al cargar música: ./assets/music/Death.wav\n"; }
+        }
+        {
+            auto character = std::make_shared<Character>("hiro", "Hiroshi");
                 {
                     Transform transform;
-                    transform.scale = { (float)0.5, (float)0.5 };
-                    character->addState("normal", "./assets/characters/personaje2/normal.png", transform);
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("normal", "./assets/characters/hiro/hiro_normal.png", transform);
                 }
-            characters_["rox"] = character;
-            sceneManager_.addComponent("char_" + std::string("rox"), character);
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("preocupado", "./assets/characters/hiro/hiro_preocupado.png", transform);
+                }
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("sonrojado", "./assets/characters/hiro/hiro_sonrojado.png", transform);
+                }
+            characters_["hiro"] = character;
+            sceneManager_.addComponent("char_" + std::string("hiro"), character);
+        }
+        {
+            auto character = std::make_shared<Character>("akira", "Akira");
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("energetico", "./assets/characters/akira/akira_energetico.png", transform);
+                }
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("riendo", "./assets/characters/akira/akira_riendo.png", transform);
+                }
+            characters_["akira"] = character;
+            sceneManager_.addComponent("char_" + std::string("akira"), character);
+        }
+        {
+            auto character = std::make_shared<Character>("yuki", "Yuki");
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("seria", "./assets/characters/yuki/yuki_seria.png", transform);
+                }
+                {
+                    Transform transform;
+                    transform.scale = { (float)0.7, (float)0.7 };
+                    character->addState("sonriendo", "./assets/characters/yuki/yuri_sonriendo.png", transform);
+                }
+            characters_["yuki"] = character;
+            sceneManager_.addComponent("char_" + std::string("yuki"), character);
         }
   }
 
   void buildStoryScript() {
-        storyScript_.push_back(SceneCmd{"ciudad_noche"});
+        storyScript_.push_back(SceneCmd{"salon_clases"});
+        storyScript_.push_back(PlayCmd{"tema_principal"});
         {
             Transform t;
             bool scale_overridden = false;
-            t.position.y = 100;
-            t.position.x = 10;
-            storyScript_.push_back(ShowCmd{"ana", "careless", t, scale_overridden});
+            t.position.y = 0;
+            t.position.x = 0;
+            storyScript_.push_back(ShowCmd{"hiro", "preocupado", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(El timbre sono, marcando el final de las clases. Todos recogian sus cosas, pero mi mente estaba en otro lugar.)", speed});
         }
         {
             Transform t;
             bool scale_overridden = false;
-            t.position.y = 100;
-            t.position.x = 500;
-            storyScript_.push_back(ShowCmd{"rox", "normal", t, scale_overridden});
+            t.position.y = 0;
+            t.position.x = 700;
+            storyScript_.push_back(ShowCmd{"akira", "energetico", t, scale_overridden});
         }
         {
             float speed = 30.0f; // Velocidad por defecto
-            speed = static_cast<float>(1);
-            storyScript_.push_back(DialogueCmd{"ana", R"(**Hola!** Como estas? ~~No me ignores~~)", speed});
+            storyScript_.push_back(DialogueCmd{"akira", R"(Hiro! Vamos por un helado? El dia esta perfecto para eso!)", speed});
         }
-        storyScript_.push_back(HideCmd{"ana"});
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"hiro", R"(Eh... no lo se, Akira. No tengo mucho animo hoy.)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"akira", R"(Vamos, no puedes estar todo el dia con esa cara. Es por el examen que tenemos?)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"hiro", R"(No es solo eso... es algo mas.)", speed});
+        }
         {
             Transform t;
             bool scale_overridden = false;
-            t.position.y = 100;
-            t.position.x = 10;
-            storyScript_.push_back(ShowCmd{"ana", "angry", t, scale_overridden});
+            t.position.y = 0;
+            t.position.x = 700;
+            storyScript_.push_back(ShowCmd{"akira", "riendo", t, scale_overridden});
         }
         {
             float speed = 30.0f; // Velocidad por defecto
-            storyScript_.push_back(DialogueCmd{"You", R"(Estoy bien)", speed});
+            storyScript_.push_back(DialogueCmd{"akira", R"(Pues con mas razon! Nada que un pn de doble chocolate no pueda arreglar. Vamos!)", speed});
+        }
+        storyScript_.push_back(HideCmd{"hiro"});
+        storyScript_.push_back(HideCmd{"akira"});
+        storyScript_.push_back(SceneCmd{"azotea"});
+        storyScript_.push_back(StopCmd{"tema_principal"});
+        storyScript_.push_back(PlayCmd{"tema_melancolico"});
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(Akira me convencio, pero antes de irnos, subi a la azotea. Necesitaba un momento para pensar.)", speed});
         }
         {
             float speed = 30.0f; // Velocidad por defecto
-            speed = static_cast<float>(20);
-            storyScript_.push_back(DialogueCmd{"ana", R"(Que alegria!)", speed});
+            storyScript_.push_back(DialogueCmd{"You", R"(No esperaba encontrar a nadie mas aqui.)", speed});
         }
+        {
+            Transform t;
+            bool scale_overridden = false;
+            t.position.y = 0;
+            t.position.x = 700;
+            storyScript_.push_back(ShowCmd{"yuki", "seria", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(Yuki, la chica mas callada de la clase, estaba mirando el horizonte. Parecia... triste.)", speed});
+        }
+        {
+            Transform t;
+            bool scale_overridden = false;
+            t.position.y = 0;
+            t.position.x = 0;
+            storyScript_.push_back(ShowCmd{"hiro", "normal", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"hiro", R"(Oh, Yuki... no sabia que estabas aqui. Disculpa.)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"yuki", R"(No te preocupes. A veces vengo aqui para estar sola.)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"hiro", R"(Te entiendo perfectamente.)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(Hubo un silencio, pero no era incomodo. Era raramente reconfortante.)", speed});
+        }
+        {
+            Transform t;
+            bool scale_overridden = false;
+            t.position.y = 0;
+            t.position.x = 700;
+            storyScript_.push_back(ShowCmd{"yuki", "sonriendo", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            speed = static_cast<float>(25);
+            storyScript_.push_back(DialogueCmd{"yuki", R"(Tu tambien pareces preocupado, Hiroshi. Sabes? A veces, hablar de las cosas ayuda.)", speed});
+        }
+        {
+            Transform t;
+            bool scale_overridden = false;
+            t.position.y = 0;
+            t.position.x = 0;
+            storyScript_.push_back(ShowCmd{"hiro", "sonrojado", t, scale_overridden});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(Su sonrisa fue tan inesperada que senti como se me calentaban las mejillas.)", speed});
+        }
+        {
+            float speed = 30.0f; // Velocidad por defecto
+            storyScript_.push_back(DialogueCmd{"You", R"(Quizas... quizas tenia razon.)", speed});
+        }
+        storyScript_.push_back(StopCmd{"tema_melancolico"});
   }
 
   void update(float deltaTime) {
@@ -336,9 +521,11 @@ private:
       if constexpr (std::is_same_v<T, DialogueCmd>) {
         std::string speakerName = (arg.speakerId == "You") ? "" : arg.speakerId;
         if (auto it = characters_.find(arg.speakerId); it != characters_.end()) { speakerName = it->second->getName(); }
+        for(auto const& [id, character] : characters_) { character->setFocused(id == arg.speakerId || arg.speakerId == "You"); }
         dialogueSystem_->start(speakerName.empty() ? arg.text : speakerName + ":\n" + arg.text, arg.speed);
         currentState_ = State::WRITING_DIALOGUE;
       } else {
+         for(auto const& [id, character] : characters_) { character->setFocused(true); }
          if constexpr (std::is_same_v<T, SceneCmd>) {
            if (backgrounds_.count(currentBackground_)) backgrounds_[currentBackground_]->setVisibility(false);
            if (backgrounds_.count(arg.backgroundName)) backgrounds_[arg.backgroundName]->setVisibility(true);
@@ -353,7 +540,24 @@ private:
              it->second->setVisibility(true);
            }
          } else if constexpr (std::is_same_v<T, HideCmd>) {
-           if (auto it = characters_.find(arg.characterId); it != characters_.end()) { it->second->setVisibility(false); }
+           if (auto it = characters_.find(arg.characterId); it != characters_.end()) { it->second->setVisibility(false);
+           }
+         } else if constexpr (std::is_same_v<T, PlayCmd>) {
+           if (!currentMusicId_.empty() && musicTracks_.count(currentMusicId_)) {
+             musicTracks_[currentMusicId_]->stop();
+           }
+           if (musicTracks_.count(arg.musicId)) {
+             currentMusicId_ = arg.musicId;
+             musicTracks_[currentMusicId_]->setLooping(true);
+             musicTracks_[currentMusicId_]->play();
+           }
+         } else if constexpr (std::is_same_v<T, StopCmd>) {
+           if (musicTracks_.count(arg.musicId)) {
+             musicTracks_[arg.musicId]->stop();
+             if (currentMusicId_ == arg.musicId) {
+               currentMusicId_.clear();
+             }
+           }
          }
          currentState_ = State::EXECUTING_COMMAND;
       }

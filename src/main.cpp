@@ -20,7 +20,7 @@ int main() {
 
     // 3. Compilación (ejemplo para Linux)
     system("g++ -o juego juego_generado.cpp -lsfml-graphics -lsfml-window "
-           "-lsfml-system");
+           "-lsfml-system -lsfml-audio");
 
     std::cout << "Compilación exitosa. Ejecute: ./juego\n";
   } catch (const std::exception &e) {

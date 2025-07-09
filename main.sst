@@ -1,25 +1,89 @@
-background ciudad_noche ("./assets/backgrounds/cerezos.jpg")
-define ana "Ana" {
-    careless: ("./assets/characters/maid/despreocupada.png", scale: 1.1),
-    angry: ("./assets/characters/maid/enojada.png", scale: 1.1)
+# ===============================================
+#  Definición de Assets (Recursos del Juego)
+# ===============================================
+
+# --- Fondos de Escena ---
+background patio_escuela ("./assets/backgrounds/smp_front_evening2.png")
+background salon_clases ("./assets/backgrounds/smp_classroom1_evening1.png")
+background azotea ("./assets/backgrounds/smp_roof_evening1.png")
+
+# --- Pistas de Música ---
+music tema_principal "./assets/music/Relax.wav"
+music tema_melancolico "./assets/music/Death.wav"
+
+# --- Personajes ---
+define hiro "Hiroshi" {
+    normal: ("./assets/characters/hiro/hiro_normal.png", scale: 0.7),
+    preocupado: ("./assets/characters/hiro/hiro_preocupado.png", scale: 0.7),
+    sonrojado: ("./assets/characters/hiro/hiro_sonrojado.png", scale: 0.7)
 }
 
-define rox "Roxana" {
-    normal: ("./assets/characters/personaje2/normal.png", scale: 0.5),
+define akira "Akira" {
+    energetico: ("./assets/characters/akira/akira_energetico.png", scale: 0.7),
+    riendo: ("./assets/characters/akira/akira_riendo.png", scale: 0.7)
 }
 
-scene ciudad_noche
+define yuki "Yuki" {
+    seria: ("./assets/characters/yuki/yuki_seria.png", scale: 0.7),
+    sonriendo: ("./assets/characters/yuki/yuri_sonriendo.png", scale: 0.7)
+}
 
-show ana careless (x: 10, y: 100)
-show rox normal (x: 500, y: 100)
 
-ana "**Hola!** Como estas? ~~No me ignores~~" (speed: 1)
+# ===============================================
+#  Inicio del Guion de la Historia
+# ===============================================
 
-hide ana
+# --- Acto 1: Un Día Normal ---
 
-show ana angry (x: 10, y: 100)
+scene salon_clases
+play tema_principal
 
-You "Estoy bien"
-ana "Que alegria!" (speed: 20)
+show hiro preocupado (x: 0, y: 0)
 
+"El timbre sono, marcando el final de las clases. Todos recogian sus cosas, pero mi mente estaba en otro lugar."
+
+show akira energetico (x: 700, y: 0)
+
+akira "Hiro! Vamos por un helado? El dia esta perfecto para eso!"
+hiro "Eh... no lo se, Akira. No tengo mucho animo hoy."
+akira "Vamos, no puedes estar todo el dia con esa cara. Es por el examen que tenemos?"
+hiro "No es solo eso... es algo mas."
+
+show akira riendo (x: 700, y: 0)
+
+akira "Pues con mas razon! Nada que un pn de doble chocolate no pueda arreglar. Vamos!"
+
+# --- Acto 2: El Encuentro en la Azotea ---
+
+hide hiro
+hide akira
+scene azotea
+stop tema_principal
+play tema_melancolico
+
+"Akira me convencio, pero antes de irnos, subi a la azotea. Necesitaba un momento para pensar."
+"No esperaba encontrar a nadie mas aqui."
+
+show yuki seria (x: 700, y: 0)
+
+"Yuki, la chica mas callada de la clase, estaba mirando el horizonte. Parecia... triste."
+
+show hiro normal (x: 0, y: 0)
+
+hiro "Oh, Yuki... no sabia que estabas aqui. Disculpa."
+yuki "No te preocupes. A veces vengo aqui para estar sola."
+hiro "Te entiendo perfectamente."
+
+"Hubo un silencio, pero no era incomodo. Era raramente reconfortante."
+
+show yuki sonriendo (x: 700, y: 0)
+
+yuki "Tu tambien pareces preocupado, Hiroshi. Sabes? A veces, hablar de las cosas ayuda." (speed: 25)
+
+show hiro sonrojado (x: 0, y: 0)
+
+"Su sonrisa fue tan inesperada que senti como se me calentaban las mejillas."
+"Quizas... quizas tenia razon."
+
+stop tema_melancolico
 
