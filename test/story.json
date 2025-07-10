@@ -1,0 +1,70 @@
+{
+  "assets": {
+    "backgrounds": {
+      "patio_escuela": "./assets/backgrounds/smp_front_evening2.png",
+      "salon_clases": "./assets/backgrounds/smp_classroom1_evening1.png",
+      "azotea": "./assets/backgrounds/smp_roof_evening1.png"
+    },
+    "music": {
+      "tema_principal": "./assets/music/Relax.wav",
+      "tema_melancolico": "./assets/music/Death.wav"
+    },
+    "characters": {
+      "hiro": {
+        "name": "Hiroshi",
+        "states": {
+          "normal": { "path": "./assets/characters/hiro/hiro_normal.png", "scale": [0.7, 0.7] },
+          "preocupado": { "path": "./assets/characters/hiro/hiro_preocupado.png", "scale": [0.7, 0.7] },
+          "sonrojado": { "path": "./assets/characters/hiro/hiro_sonrojado.png", "scale": [0.7, 0.7] }
+        }
+      },
+      "akira": {
+        "name": "Akira",
+        "states": {
+          "energetico": { "path": "./assets/characters/akira/akira_energetico.png", "scale": [0.7, 0.7] },
+          "riendo": { "path": "./assets/characters/akira/akira_riendo.png", "scale": [0.7, 0.7] }
+        }
+      },
+      "yuki": {
+        "name": "Yuki",
+        "states": {
+          "seria": { "path": "./assets/characters/yuki/yuki_seria.png", "scale": [0.7, 0.7] },
+          "sonriendo": { "path": "./assets/characters/yuki/yuri_sonriendo.png", "scale": [0.7, 0.7] }
+        }
+      }
+    }
+  },
+  "script": [
+    { "command": "scene", "background": "salon_clases" },
+    { "command": "play", "music": "tema_principal" },
+    { "command": "show", "character": "hiro", "state": "preocupado", "position": [0, 0] },
+    { "command": "dialogue", "speaker": "You", "text": "El timbre sono, marcando el final de las clases. Todos recogian sus cosas, pero mi mente estaba en otro lugar." },
+    { "command": "show", "character": "akira", "state": "energetico", "position": [700, 0] },
+    { "command": "dialogue", "speaker": "akira", "text": "Hiro! Vamos por un helado? El dia esta perfecto para eso!" },
+    { "command": "dialogue", "speaker": "hiro", "text": "Eh... no lo se, Akira. No tengo mucho animo hoy." },
+    { "command": "dialogue", "speaker": "akira", "text": "Vamos, no puedes estar todo el dia con esa cara. Es por el examen que tenemos?" },
+    { "command": "dialogue", "speaker": "hiro", "text": "No es solo eso... es algo mas." },
+    { "command": "show", "character": "akira", "state": "riendo", "position": [700, 0] },
+    { "command": "dialogue", "speaker": "akira", "text": "Pues con mas razon! Nada que un helado de doble chocolate no pueda arreglar. Vamos!" },
+    { "command": "hide", "character": "hiro" },
+    { "command": "hide", "character": "akira" },
+    { "command": "scene", "background": "azotea" },
+    { "command": "stop", "music": "tema_principal" },
+    { "command": "play", "music": "tema_melancolico" },
+    { "command": "dialogue", "speaker": "You", "text": "Akira me convencio, pero antes de irnos, subi a la azotea. Necesitaba un momento para pensar." },
+    { "command": "dialogue", "speaker": "You", "text": "No esperaba encontrar a nadie mas aqui." },
+    { "command": "show", "character": "yuki", "state": "seria", "position": [700, 0] },
+    { "command": "dialogue", "speaker": "You", "text": "Yuki, la chica mas callada de la clase, estaba mirando el horizonte. Parecia... triste." },
+    { "command": "show", "character": "hiro", "state": "normal", "position": [0, 0] },
+    { "command": "dialogue", "speaker": "hiro", "text": "Oh, Yuki... no sabia que estabas aqui. Disculpa." },
+    { "command": "dialogue", "speaker": "yuki", "text": "No te preocupes. A veces vengo aqui para estar sola." },
+    { "command": "dialogue", "speaker": "hiro", "text": "Te entiendo perfectamente." },
+    { "command": "dialogue", "speaker": "You", "text": "Hubo un silencio, pero no era incomodo. Era raramente reconfortante." },
+    { "command": "show", "character": "yuki", "state": "sonriendo", "position": [700, 0] },
+    { "command": "dialogue", "speaker": "yuki", "text": "Tu tambien pareces preocupado, Hiroshi. Sabes? A veces, hablar de las cosas ayuda.", "speed": 25 },
+    { "command": "show", "character": "hiro", "state": "sonrojado", "position": [0, 0] },
+    { "command": "dialogue", "speaker": "You", "text": "Su sonrisa fue tan inesperada que senti como se me calentaban las mejillas." },
+    { "command": "dialogue", "speaker": "You", "text": "Quizas... quizas tenia razon." },
+    { "command": "stop", "music": "tema_melancolico" }
+  ]
+}

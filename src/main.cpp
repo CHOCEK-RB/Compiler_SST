@@ -3,24 +3,29 @@
 #include <iostream>
 #include <lexer.hpp>
 #include <parser.hpp>
-#include <token.hpp>
 
-int main() {
+int main(int argc, char *argv[]) {
   try {
-    Lexer lexer("main.sst");
+    if (argc < 2) {
+      throw std::runtime_error(
+          "Ingrese el archivo que desea compilar [./compiler <file.sst>]");
+    }
+
+    const char *file = argv[1];
+    Lexer lexer(file);
     Parser parser(lexer);
     auto ast = parser.parseProgram();
-    std::ofstream output("juego_generado.cpp");
+
+    std::ofstream output("story.json");
     if (!output.is_open()) {
-      throw std::runtime_error("No se pudo abrir archivo de salida");
+      throw std::runtime_error("No se pudo abrir story.json");
     }
 
     ast->generateCode(output, 0);
     output.close();
 
-    // 3. Compilación (ejemplo para Linux)
-    system("g++ -o juego juego_generado.cpp -lsfml-graphics -lsfml-window "
-           "-lsfml-system -lsfml-audio");
+    system("g++ -std=c++17 -o juego juego_generado.cpp -Iinclude "
+           "-lsfml-graphics -lsfml-window -lsfml-system -lsfml-audio");
 
     std::cout << "Compilación exitosa. Ejecute: ./juego\n";
   } catch (const std::exception &e) {
