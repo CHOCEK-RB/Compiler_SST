@@ -4,7 +4,6 @@
 #include <stdexcept>
 #include <vector>
 
-// Función de ayuda para escapar strings para JSON
 std::string escapeJsonString(const std::string &s) {
   std::string escaped;
   for (char c : s) {
@@ -38,11 +37,10 @@ std::string escapeJsonString(const std::string &s) {
   return escaped;
 }
 
-// Genera el motor del juego en C++ (código estático)
 void generateEngineCode(std::ostream &out) {
-  out << R"#(
-#include <SFML/Audio.hpp>
+  out << R"#(#include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -56,19 +54,57 @@ void generateEngineCode(std::ostream &out) {
 
 using json = nlohmann::json;
 
-// --- Constantes de Configuración ---
 constexpr int WINDOW_WIDTH = 1600;
 constexpr int WINDOW_HEIGHT = 800;
 constexpr int TEXT_BOX_POSX = 0;
-constexpr int TEXT_BOX_POSY = 500;
+constexpr int TEXT_BOX_POSY = WINDOW_HEIGHT * 0.65;
 constexpr int TEXT_BOX_WIDTH = WINDOW_WIDTH;
 constexpr int TEXT_BOX_HEIGHT = WINDOW_HEIGHT - TEXT_BOX_POSY;
+constexpr int TEXT_BOX_PADDING = 100;
 constexpr int DIALOGUE_SIZE = 36;
 constexpr int DIALOGUE_POSX = TEXT_BOX_POSX + 20;
 constexpr int DIALOGUE_POSY = TEXT_BOX_POSY + 20;
-constexpr int TEXT_BOX_PADDING = 200;
+constexpr int CHOICE_BOX_WIDTH = 1400;
+constexpr int CHOICE_BOX_PADDING = 50;
+constexpr int TEXT_OPTION_SIZE = 24;
+constexpr int OPTION_PADDING = 10;
+constexpr int OPTION_MARGIN = 10;
+constexpr int PROMPT_SIZE = 24;
+constexpr int PROMPT_MARGIN = 10;
 
-// --- Clases del Motor de la Novela Visual ---
+std::string wrapText(const std::string &text, unsigned int lineLength,
+                     const sf::Font &font, unsigned int charSize) {
+  std::string wrappedText;
+  std::string currentLine;
+  std::string word;
+  sf::Text tempText(font, "", charSize);
+
+  for (char c : text) {
+    if (c == ' ' || c == '\n') {
+      tempText.setString(currentLine + word);
+
+      if (tempText.getGlobalBounds().size.x > lineLength) {
+        wrappedText += currentLine + '\n';
+        currentLine.clear();
+
+        currentLine += word + c;
+      } else {
+        currentLine += word + ' ';
+      }
+
+      word.clear();
+    } else {
+      word += c;
+    }
+  }
+  tempText.setString(currentLine + word);
+  if (tempText.getLocalBounds().size.x > lineLength) {
+    wrappedText += currentLine + '\n' + word;
+  } else {
+    wrappedText += currentLine + word;
+  }
+  return wrappedText;
+}
 
 class TextureManager {
 private:
@@ -103,11 +139,11 @@ class SceneComponent {
 public:
   virtual ~SceneComponent() = default;
   virtual void draw(sf::RenderWindow &window) = 0;
-  virtual void setVisibility(bool visible) {}
-  virtual void setPosition(const sf::Vector2f &pos) {}
-  virtual void setScale(const sf::Vector2f &scale) {}
-  virtual void setFocused(bool isFocused) {}
-  virtual void update(float deltaTime) {}
+  virtual void setVisibility(bool) {};
+  virtual void setPosition(const sf::Vector2f &) {};
+  virtual void setScale(const sf::Vector2f &) {};
+  virtual void setFocused(bool) {};
+  virtual void update(float) {};
 };
 
 class SpriteComponent : public SceneComponent {
@@ -218,15 +254,14 @@ public:
     texture_ = TextureManager::getInstance().loadTexture(texturePath);
     if (texture_) {
       sprite_ = std::make_unique<sf::Sprite>(*texture_);
+      sf::Vector2u texSize = texture_->getSize();
+      float scaleX = static_cast<float>(WINDOW_WIDTH) / texSize.x;
+      float scaleY = static_cast<float>(WINDOW_HEIGHT) / texSize.y;
+      sprite_->setScale({scaleX, scaleY});
     }
   }
   void draw(sf::RenderWindow &window) override {
     if (isVisible_ && sprite_) {
-      sf::Vector2u windowSize = window.getSize();
-      sf::Vector2u texSize = texture_->getSize();
-      float scaleX = static_cast<float>(windowSize.x) / texSize.x;
-      float scaleY = static_cast<float>(windowSize.y) / texSize.y;
-      sprite_->setScale({scaleX, scaleY});
       window.draw(*sprite_);
     }
   }
@@ -243,39 +278,6 @@ class DialogueSystem : public SceneComponent {
   float timePerChar_ = 0.05f;
   float elapsedTime_ = 0.0f;
   bool isTyping_ = false;
-
-  std::string wrapText(const std::string &text, unsigned int lineLength,
-                       const sf::Font &font, unsigned int charSize) {
-    std::string wrappedText;
-    std::string currentLine;
-    std::string word;
-    sf::Text tempText(font, "", charSize);
-    for (char c : text) {
-      if (c == ' ' || c == '\n') {
-        tempText.setString(currentLine + word + ' ');
-        if (tempText.getLocalBounds().size.x > lineLength) {
-          wrappedText += currentLine + '\n';
-          currentLine = word + ' ';
-        } else {
-          currentLine += word + ' ';
-        }
-        word.clear();
-        if (c == '\n') {
-          wrappedText += currentLine;
-          currentLine.clear();
-        }
-      } else {
-        word += c;
-      }
-    }
-    tempText.setString(currentLine + word);
-    if (tempText.getLocalBounds().size.x > lineLength) {
-      wrappedText += currentLine + '\n' + word;
-    } else {
-      wrappedText += currentLine + word;
-    }
-    return wrappedText;
-  }
 
 public:
   DialogueSystem(const sf::Font &font) : dialogueText_(font, "") {
@@ -325,6 +327,7 @@ public:
   }
 
   bool isFinished() const { return !isTyping_; }
+  bool isVisible() const { return isVisible_; }
   void hide() { isVisible_ = false; }
   void draw(sf::RenderWindow &window) override {
     if (isVisible_) {
@@ -354,7 +357,6 @@ public:
   }
 };
 
-// --- Definiciones de Comandos de la Historia ---
 struct DialogueCmd {
   std::string speakerId;
   std::string text;
@@ -377,8 +379,177 @@ struct PlayCmd {
 struct StopCmd {
   std::string musicId;
 };
-using StoryCommand =
-    std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd, PlayCmd, StopCmd>;
+
+struct JumpCmd {
+  std::string targetLabel;
+};
+
+struct EndCmd {};
+
+struct ChoiceOptionCmd {
+  std::string text;
+  std::string gotoLabel;
+};
+
+struct ChoiceCmd {
+  std::string prompt;
+  std::vector<ChoiceOptionCmd> options;
+};
+
+struct LabelCmd {
+  std::string name;
+  size_t startIndex;
+};
+
+using StoryCommand = std::variant<DialogueCmd, ShowCmd, HideCmd, SceneCmd,
+                                  PlayCmd, StopCmd, ChoiceCmd, JumpCmd, EndCmd>;
+
+class ChoiceBox : public SceneComponent {
+private:
+  sf::RectangleShape background_;
+  sf::Text promptText_;
+  std::vector<sf::Text> optionTexts_;
+  std::vector<sf::RectangleShape> optionRects_;
+  sf::Font font_;
+  bool isVisible_ = false;
+  int hoveredOption_ = -1;
+  std::vector<std::string> gotoLabels_;
+
+public:
+  ChoiceBox(const sf::Font &font) : promptText_(font, ""), font_(font) {
+    background_.setSize({CHOICE_BOX_WIDTH, 100});
+    background_.setFillColor(sf::Color(0, 0, 0, 180));
+    promptText_.setFont(font_);
+    promptText_.setCharacterSize(TEXT_OPTION_SIZE);
+    promptText_.setFillColor(sf::Color::White);
+  }
+
+  void setOptions(const std::string &prompt,
+                  const std::vector<ChoiceOptionCmd> &options) {
+    optionTexts_.clear();
+    optionRects_.clear();
+    gotoLabels_.clear();
+
+    promptText_.setString(
+        wrapText(prompt, CHOICE_BOX_WIDTH * 0.9, font_, PROMPT_SIZE));
+
+    float totalHeight =
+        PROMPT_MARGIN * 2 + promptText_.getGlobalBounds().size.y;
+    float optionWidth = background_.getSize().x * 0.9;
+
+    for (const auto &option : options) {
+      sf::Text optionText(font_, "", TEXT_OPTION_SIZE);
+      optionText.setFillColor(sf::Color::White);
+      std::string wrapped =
+          wrapText(option.text, optionWidth * 0.9, font_, TEXT_OPTION_SIZE);
+      optionText.setString(wrapped);
+
+      totalHeight += optionText.getGlobalBounds().size.y + OPTION_PADDING * 2 +
+                     OPTION_MARGIN * 2;
+
+      sf::RectangleShape optionRect;
+      optionRect.setFillColor(sf::Color(50, 50, 50, 180));
+      optionRect.setOutlineThickness(2);
+      optionRect.setOutlineColor(sf::Color(100, 100, 100, 200));
+
+      optionTexts_.push_back(optionText);
+      optionRects_.push_back(optionRect);
+      gotoLabels_.push_back(option.gotoLabel);
+    }
+
+    background_.setSize(
+        {CHOICE_BOX_WIDTH, totalHeight + CHOICE_BOX_PADDING * 2});
+    background_.setPosition({(WINDOW_WIDTH - background_.getSize().x) / 2.0f,
+                             (WINDOW_HEIGHT - background_.getSize().y) / 2.0f});
+
+    promptText_.setPosition(
+        {((background_.getSize().x - promptText_.getGlobalBounds().size.x) /
+          2.0f) +
+             background_.getPosition().x,
+         background_.getPosition().y + CHOICE_BOX_PADDING + PROMPT_MARGIN});
+
+    float currentY = promptText_.getPosition().y +
+                     promptText_.getGlobalBounds().size.y + PROMPT_MARGIN;
+
+    for (size_t i = 0; i < optionTexts_.size(); ++i) {
+      float optionHeight =
+          optionTexts_[i].getGlobalBounds().size.y + OPTION_PADDING * 2;
+
+      optionRects_[i].setSize({optionWidth, optionHeight});
+      optionRects_[i].setPosition(
+          {((background_.getSize().x - optionWidth) / 2.0f) +
+               background_.getPosition().x,
+           currentY + OPTION_MARGIN});
+      optionTexts_[i].setPosition(
+          {optionRects_[i].getPosition().x +
+               (optionWidth - optionTexts_[i].getGlobalBounds().size.x) / 2.0f,
+           currentY + (optionHeight + OPTION_MARGIN -
+                       optionTexts_[i].getGlobalBounds().size.y) /
+                          2.0f});
+      currentY += optionHeight + OPTION_MARGIN * 2;
+    }
+    isVisible_ = true;
+  }
+
+  void draw(sf::RenderWindow &window) override {
+    if (!isVisible_)
+      return;
+
+    window.draw(background_);
+    window.draw(promptText_);
+    for (size_t i = 0; i < optionRects_.size(); ++i) {
+      window.draw(optionRects_[i]);
+    }
+    for (const auto &text : optionTexts_) {
+      window.draw(text);
+    }
+  }
+
+  void setVisibility(bool visible) override { isVisible_ = visible; }
+  bool isVisible() const { return isVisible_; }
+
+  int handleMouseClick(sf::Vector2i mousePos) {
+    if (!isVisible_)
+      return -1;
+
+    for (size_t i = 0; i < optionRects_.size(); ++i) {
+      if (optionRects_[i].getGlobalBounds().contains(
+              static_cast<sf::Vector2f>(mousePos))) {
+        return i;
+      }
+    }
+    return -1;
+  }
+
+  void handleMouseMove(sf::Vector2i mousePos) {
+    if (!isVisible_)
+      return;
+
+    int oldHovered = hoveredOption_;
+    hoveredOption_ = -1;
+    for (size_t i = 0; i < optionRects_.size(); ++i) {
+      if (optionRects_[i].getGlobalBounds().contains(
+              static_cast<sf::Vector2f>(mousePos))) {
+        hoveredOption_ = i;
+        break;
+      }
+    }
+
+    if (hoveredOption_ != oldHovered) {
+      for (size_t i = 0; i < optionRects_.size(); ++i) {
+        if (i == hoveredOption_) {
+          optionRects_[i].setFillColor(sf::Color(80, 80, 80, 200));
+        } else {
+          optionRects_[i].setFillColor(sf::Color(50, 50, 50, 180));
+        }
+      }
+    }
+  }
+
+  const std::string &getGotoLabel(int index) const {
+    return gotoLabels_[index];
+  }
+};
 
 class VisualNovelEngine {
 public:
@@ -386,20 +557,23 @@ public:
     IDLE,
     EXECUTING_COMMAND,
     WRITING_DIALOGUE,
-    WAITING_FOR_INPUT
+    WAITING_FOR_INPUT,
+    WAITING_FOR_CHOICE
   };
 
   void initialize(const std::string &storyPath) {
     window_.create(sf::VideoMode({WINDOW_WIDTH, WINDOW_HEIGHT}), "visualNovel",
-                   sf::Style::Default);
+                   sf::Style::Close | sf::Style::Titlebar);
     window_.setPosition({100, 100});
     window_.setFramerateLimit(60);
-    if (!font_.openFromFile("assets/fonts/CaskaydiaCoveNerdFont-Regular.ttf")) {
+    if (!font_.openFromFile(
+            "assets/fonts/WinkyRough-Italic-VariableFont_wght.ttf")) {
       std::cerr << "Error: No se pudo cargar la fuente.\n";
       return;
     }
 
     dialogueSystem_ = std::make_shared<DialogueSystem>(font_);
+    choiceBox_ = std::make_shared<ChoiceBox>(font_);
 
     if (!loadStoryFromFile(storyPath)) {
       std::cerr << "Error: No se pudo cargar la historia desde " << storyPath
@@ -408,6 +582,13 @@ public:
     }
 
     if (!storyScript_.empty()) {
+      if (labelMap_.count("start")) {
+        commandIndex_ = labelMap_["start"];
+      } else {
+        std::cerr << "Error: 'start' label not found in story.json\n";
+        currentState_ = State::IDLE;
+        return;
+      }
       currentState_ = State::EXECUTING_COMMAND;
     }
   }
@@ -424,6 +605,7 @@ public:
 
 private:
   State currentState_ = State::IDLE;
+  bool waitForMouseReleaseForChoice_ = false;
   sf::RenderWindow window_;
   sf::Font font_;
   SceneManager sceneManager_;
@@ -433,10 +615,12 @@ private:
   std::map<std::string, std::shared_ptr<sf::Music>> musicTracks_;
 
   std::shared_ptr<DialogueSystem> dialogueSystem_;
+  std::shared_ptr<ChoiceBox> choiceBox_;
   std::vector<StoryCommand> storyScript_;
   size_t commandIndex_ = 0;
   std::string currentBackground_;
   std::string currentMusicId_;
+  std::map<std::string, size_t> labelMap_;
 
   bool loadStoryFromFile(const std::string &path) {
     std::ifstream file(path);
@@ -446,7 +630,6 @@ private:
     json storyJson;
     file >> storyJson;
 
-    // Cargar Assets
     const auto &assets = storyJson["assets"];
     for (auto const &[key, val] : assets["backgrounds"].items()) {
       auto bg = std::make_shared<Background>(val.get<std::string>());
@@ -477,29 +660,49 @@ private:
       sceneManager_.addComponent("char_" + key, character);
     }
 
-    // Cargar Script
     const auto &script = storyJson["script"];
-    for (const auto &cmdJson : script) {
-      std::string commandType = cmdJson["command"].get<std::string>();
-      if (commandType == "scene") {
-        storyScript_.push_back(SceneCmd{cmdJson["background"]});
-      } else if (commandType == "play") {
-        storyScript_.push_back(PlayCmd{cmdJson["music"]});
-      } else if (commandType == "stop") {
-        storyScript_.push_back(StopCmd{cmdJson["music"]});
-      } else if (commandType == "show") {
-        Transform t;
-        if (cmdJson.contains("position")) {
-          t.position = {cmdJson["position"][0].get<float>(),
-                        cmdJson["position"][1].get<float>()};
+    for (const auto &labelEntry : script) {
+      std::string labelName = labelEntry["label"].get<std::string>();
+      const auto &commands = labelEntry["commands"];
+      std::cout << "DEBUG label : " << labelName
+                << " , position : " << storyScript_.size() << "\n";
+      labelMap_[labelName] = storyScript_.size();
+      for (const auto &cmdJson : commands) {
+        std::string commandType = cmdJson["command"].get<std::string>();
+        if (commandType == "scene") {
+          storyScript_.push_back(SceneCmd{cmdJson["background"]});
+        } else if (commandType == "play") {
+          storyScript_.push_back(PlayCmd{cmdJson["music"]});
+        } else if (commandType == "stop") {
+          storyScript_.push_back(StopCmd{cmdJson["music"]});
+        } else if (commandType == "show") {
+          Transform t;
+          if (cmdJson.contains("position")) {
+            t.position = {cmdJson["position"][0].get<float>(),
+                          cmdJson["position"][1].get<float>()};
+          }
+          storyScript_.push_back(
+              ShowCmd{cmdJson["character"], cmdJson["state"], t});
+        } else if (commandType == "hide") {
+          storyScript_.push_back(HideCmd{cmdJson["character"]});
+        } else if (commandType == "dialogue") {
+          storyScript_.push_back(DialogueCmd{cmdJson["speaker"],
+                                             cmdJson["text"],
+                                             cmdJson.value("speed", 30.0f)});
+        } else if (commandType == "choice") {
+          ChoiceCmd choiceCmd;
+          choiceCmd.prompt = cmdJson["prompt"].get<std::string>();
+          for (const auto &optionJson : cmdJson["options"]) {
+            choiceCmd.options.push_back(
+                ChoiceOptionCmd{optionJson["text"].get<std::string>(),
+                                optionJson["goto"].get<std::string>()});
+          }
+          storyScript_.push_back(choiceCmd);
+        } else if (commandType == "jump") {
+          storyScript_.push_back(JumpCmd{cmdJson["target"]});
+        } else if (commandType == "end") {
+          storyScript_.push_back(EndCmd{});
         }
-        storyScript_.push_back(
-            ShowCmd{cmdJson["character"], cmdJson["state"], t});
-      } else if (commandType == "hide") {
-        storyScript_.push_back(HideCmd{cmdJson["character"]});
-      } else if (commandType == "dialogue") {
-        storyScript_.push_back(DialogueCmd{cmdJson["speaker"], cmdJson["text"],
-                                           cmdJson.value("speed", 30.0f)});
       }
     }
     return true;
@@ -517,6 +720,10 @@ private:
     if (commandIndex_ >= storyScript_.size()) {
       dialogueSystem_->hide();
       currentState_ = State::IDLE;
+      std::cerr << "DEBUG: Reached end of script. commandIndex_ = "
+                << commandIndex_
+                << ", storyScript_.size() = " << storyScript_.size()
+                << std::endl;
       return;
     }
 
@@ -539,6 +746,15 @@ private:
                 speakerName.empty() ? arg.text : speakerName + ":\n" + arg.text,
                 arg.speed);
             currentState_ = State::WRITING_DIALOGUE;
+          } else if constexpr (std::is_same_v<T, ChoiceCmd>) {
+            dialogueSystem_->hide();
+            choiceBox_->setOptions(arg.prompt, arg.options);
+            currentState_ = State::WAITING_FOR_CHOICE;
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
+              waitForMouseReleaseForChoice_ = true;
+            } else {
+              waitForMouseReleaseForChoice_ = false;
+            }
           } else {
             for (auto const &[id, character] : characters_) {
               character->setFocused(true);
@@ -578,13 +794,26 @@ private:
                   currentMusicId_.clear();
                 }
               }
+            } else if constexpr (std::is_same_v<T, EndCmd>) {
+              window_.close();
+              currentState_ =
+                  State::IDLE;
+            } else if constexpr (std::is_same_v<T, JumpCmd>) {
+              if (labelMap_.count(arg.targetLabel)) {
+                commandIndex_ = labelMap_[arg.targetLabel];
+                currentState_ =
+                    State::EXECUTING_COMMAND; 
+              } else {
+                std::cerr << "Error: Jump target label \"" << arg.targetLabel
+                          << "\" not found.\n";
+                currentState_ = State::IDLE;
+              }
             }
             currentState_ = State::EXECUTING_COMMAND;
+            commandIndex_++;
           }
         },
         command);
-
-    commandIndex_++;
   }
 
   void handleEvents() {
@@ -594,12 +823,50 @@ private:
       }
       if (auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if (keyPressed->code == sf::Keyboard::Key::Space) {
+          if (dialogueSystem_->isFinished()) {
+            currentState_ = State::EXECUTING_COMMAND;
+            commandIndex_++;
+          }
+
           if (currentState_ == State::WRITING_DIALOGUE) {
             dialogueSystem_->finish();
             currentState_ = State::WAITING_FOR_INPUT;
           } else if (currentState_ == State::WAITING_FOR_INPUT) {
             currentState_ = State::EXECUTING_COMMAND;
+            commandIndex_++;
           }
+        }
+      }
+      if (currentState_ == State::WAITING_FOR_CHOICE) {
+        if (auto *mouseButtonReleased =
+                event->getIf<sf::Event::MouseButtonReleased>()) {
+          if (mouseButtonReleased->button == sf::Mouse::Button::Left) {
+            if (waitForMouseReleaseForChoice_) {
+              waitForMouseReleaseForChoice_ = false;
+              return;
+            }
+            int chosenOptionIndex =
+                choiceBox_->handleMouseClick(sf::Mouse::getPosition(window_));
+            if (chosenOptionIndex != -1) {
+              const auto &currentCommand = storyScript_[commandIndex_];
+              if (const auto *choiceCmd =
+                      std::get_if<ChoiceCmd>(&currentCommand)) {
+                std::string targetLabel =
+                    choiceBox_->getGotoLabel(chosenOptionIndex);
+                if (labelMap_.count(targetLabel)) {
+                  commandIndex_ = labelMap_[targetLabel];
+                  currentState_ = State::EXECUTING_COMMAND;
+                  choiceBox_->setVisibility(false);
+                } else {
+                  std::cerr << "Error: Label \"" << targetLabel
+                            << "\" not found.\n";
+                }
+              }
+            }
+          }
+        } else if (auto *mouseMoved = event->getIf<sf::Event::MouseMoved>()) {
+          choiceBox_->handleMouseMove(
+              {mouseMoved->position.x, mouseMoved->position.y});
         }
       }
     }
@@ -609,6 +876,7 @@ private:
     window_.clear(sf::Color::Black);
     sceneManager_.draw(window_);
     dialogueSystem_->draw(window_);
+    choiceBox_->draw(window_);
     window_.display();
   }
 };
@@ -627,10 +895,7 @@ int main(int argc, char *argv[]) {
 )#";
 }
 
-// --- Implementaciones de generateCode para generar JSON ---
-
 void ProgramNode::generateCode(std::ostream &out, int indent) const {
-  // 1. Generar el motor C++ en un archivo separado
   std::ofstream engineFile("juego_generado.cpp");
   if (engineFile.is_open()) {
     generateEngineCode(engineFile);
@@ -640,11 +905,8 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
         "No se pudo abrir juego_generado.cpp para escribir.");
   }
 
-  // 2. Generar el archivo story.json
   out << "{\n";
   out << "  \"assets\": {\n";
-
-  // Generar Fondos
   out << "    \"backgrounds\": {\n";
   bool first = true;
   for (const auto &stmt : statements) {
@@ -656,8 +918,6 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     }
   }
   out << "\n    },\n";
-
-  // Generar Música
   out << "    \"music\": {\n";
   first = true;
   for (const auto &stmt : statements) {
@@ -669,8 +929,6 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
     }
   }
   out << "\n    },\n";
-
-  // Generar Personajes
   out << "    \"characters\": {\n";
   first = true;
   for (const auto &stmt : statements) {
@@ -683,25 +941,20 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
   }
   out << "\n    }\n";
 
-  out << "  },\n"; // Fin de assets
-
-  // Generar Script
+  out << "  },\n";
   out << "  \"script\": [\n";
-  first = true;
+  bool firstLabel = true;
   for (const auto &stmt : statements) {
-    if (dynamic_cast<BackgroundNode *>(stmt.get()) ||
-        dynamic_cast<MusicNode *>(stmt.get()) ||
-        dynamic_cast<CharacterNode *>(stmt.get())) {
-      continue; // Saltar nodos de assets
+    if (auto labelNode = dynamic_cast<LabelNode *>(stmt.get())) {
+      if (!firstLabel)
+        out << ",\n";
+      labelNode->generateCode(out, 4);
+      firstLabel = false;
     }
-    if (!first)
-      out << ",\n";
-    stmt->generateCode(out, 4);
-    first = false;
   }
   out << "\n  ]\n";
 
-  out << "}\n"; // Fin del JSON
+  out << "}\n";
 }
 
 void BackgroundNode::generateCode(std::ostream &out, int indent) const {
@@ -796,4 +1049,51 @@ void StopNode::generateCode(std::ostream &out, int indent) const {
   out << std::string(indent, ' ') << "{ ";
   out << "\"command\": \"stop\", ";
   out << "\"music\": \"" << musicId << "\" }";
+}
+
+void OptionNode::generateCode(std::ostream &out, int indent) const {
+  out << std::string(indent, ' ') << "{ ";
+  out << "\"text\": \"" << escapeJsonString(text) << "\", ";
+  out << "\"goto\": \"" << escapeJsonString(gotoLabel) << "\" }";
+}
+
+void ChoiceNode::generateCode(std::ostream &out, int indent) const {
+  out << std::string(indent, ' ') << "{ ";
+  out << "\"command\": \"choice\", ";
+  out << "\"prompt\": \"" << escapeJsonString(prompt) << "\", ";
+  out << "\"options\": [\n";
+  bool first = true;
+  for (const auto &option : options) {
+    if (!first)
+      out << ",\n";
+    option->generateCode(out, indent + 4);
+    first = false;
+  }
+  out << "\n" << std::string(indent + 2, ' ') << "]\n";
+  out << std::string(indent, ' ') << "}";
+}
+
+void LabelNode::generateCode(std::ostream &out, int indent) const {
+  out << std::string(indent, ' ') << "{\n";
+  out << std::string(indent + 2, ' ') << "\"label\": \"" << name << "\",\n";
+  out << std::string(indent + 2, ' ') << "\"commands\": [\n";
+  bool first = true;
+  for (const auto &stmt : statements) {
+    if (!first)
+      out << ",\n";
+    stmt->generateCode(out, indent + 4);
+    first = false;
+  }
+  out << "\n" << std::string(indent + 2, ' ') << "]\n";
+  out << std::string(indent, ' ') << "}";
+}
+
+void JumpNode::generateCode(std::ostream &out, int indent) const {
+  out << std::string(indent, ' ') << "{ ";
+  out << "\"command\": \"jump\", ";
+  out << "\"target\": \"" << target << "\" }";
+}
+
+void EndNode::generateCode(std::ostream &out, int indent) const {
+  out << std::string(indent, ' ') << "{\"command\": \"end\"}";
 }

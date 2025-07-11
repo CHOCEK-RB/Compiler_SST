@@ -98,11 +98,31 @@ Token Lexer::realNextToken() {
         case '}':
           type = TokenType::RBRACKET;
           break;
+        case '-':
+          advance();
+          if (std::isdigit(currentChar)) {
+            lexeme += currentChar;
+            advance();
+            state = State::NUMBER;
+            continue;
+          } else if (currentChar == '>') {
+            type = TokenType::ARROW;
+            lexeme = "->";
+          } else {
+            type = TokenType::UNKNOWN;
+            lexeme = "-";
+          }
+          break;
         default:
           type = TokenType::UNKNOWN;
           break;
         }
-        std::string val(1, currentChar);
+        std::string val;
+        if (lexeme.empty()) {
+          val = std::string(1, currentChar);
+        } else {
+          val = lexeme;
+        }
         advance();
         return {type, val, line};
       }
@@ -130,6 +150,16 @@ Token Lexer::realNextToken() {
         return {TokenType::PLAY, lexeme, line};
       if (lexeme == "stop")
         return {TokenType::STOP, lexeme, line};
+      if (lexeme == "choice")
+        return {TokenType::CHOICE, lexeme, line};
+      if (lexeme == "option")
+        return {TokenType::OPTION, lexeme, line};
+      if (lexeme == "label")
+        return {TokenType::LABEL, lexeme, line};
+      if (lexeme == "jump")
+        return {TokenType::JUMP, lexeme, line};
+      if (lexeme == "end")
+        return {TokenType::END, lexeme, line};
       return {TokenType::IDENTIFIER, lexeme, line};
 
     case State::NUMBER: {
@@ -145,6 +175,28 @@ Token Lexer::realNextToken() {
 
     case State::STRING:
       while (!endOfFile && currentChar != '"') {
+        if (currentChar == '\\') {
+          advance();
+          switch (currentChar) {
+          case 'n':
+            currentChar = '\n';
+            break;
+          case 't':
+            currentChar = '\t';
+            break;
+          case '\\':
+            currentChar = '\\';
+            break;
+          case '"':
+            currentChar = '\"';
+            break;
+          case '\'':
+            currentChar = '\'';
+            break;
+          default:
+            break;
+          }
+        }
         lexeme += currentChar;
         advance();
       }

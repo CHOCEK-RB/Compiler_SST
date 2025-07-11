@@ -14,6 +14,11 @@ enum class TokenType {
   MUSIC,
   PLAY,
   STOP,
+  CHOICE,
+  OPTION,
+  LABEL,
+  JUMP,
+  ARROW,
   IDENTIFIER,
   STRING,
   FLOAT,
@@ -25,6 +30,7 @@ enum class TokenType {
   LBRACKET,
   RBRACKET,
   END_OF_FILE,
+  END,
   UNKNOWN
 };
 
@@ -54,6 +60,11 @@ const std::unordered_map<TokenType, std::string> tokenStr = {
     {TokenType::MUSIC, "MUSIC"},
     {TokenType::PLAY, "PLAY"},
     {TokenType::STOP, "STOP"},
+    {TokenType::CHOICE, "CHOICE"},
+    {TokenType::OPTION, "OPTION"},
+    {TokenType::LABEL, "LABEL"},
+    {TokenType::JUMP, "JUMP"},
+    {TokenType::ARROW, "ARROW"},
     {TokenType::IDENTIFIER, "IDENTIFIER"},
     {TokenType::STRING, "STRING"},
     {TokenType::INT, "INT"},
@@ -65,4 +76,5 @@ const std::unordered_map<TokenType, std::string> tokenStr = {
     {TokenType::LBRACKET, "LBRACKET"},
     {TokenType::RBRACKET, "RBRACKET"},
     {TokenType::UNKNOWN, "UNKNOWN"},
+    {TokenType::END, "END"},
     {TokenType::END_OF_FILE, "EOF"}};

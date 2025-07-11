@@ -14,47 +14,9 @@
       "build/obj/parser.o",
       "src/parser.cpp"
     ],
-    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
-    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/parser.cpp",
-    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/parser.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-Wall",
-      "-Wextra",
-      "-std=c++17",
-      "-Iinclude",
-      "-g",
-      "-O0",
-      "-DDEBUG",
-      "-c",
-      "-o",
-      "build/obj/ast.o",
-      "src/ast.cpp"
-    ],
-    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
-    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/ast.cpp",
-    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/ast.o"
-  },
-  {
-    "arguments": [
-      "/usr/bin/g++",
-      "-Wall",
-      "-Wextra",
-      "-std=c++17",
-      "-Iinclude",
-      "-g",
-      "-O0",
-      "-DDEBUG",
-      "-c",
-      "-o",
-      "build/obj/lexer.o",
-      "src/lexer.cpp"
-    ],
-    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
-    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/lexer.cpp",
-    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/lexer.o"
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/src/parser.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/build/obj/parser.o"
   },
   {
     "arguments": [
@@ -71,9 +33,9 @@
       "build/obj/main.o",
       "src/main.cpp"
     ],
-    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
-    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/main.cpp",
-    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/main.o"
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/src/main.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/build/obj/main.o"
   },
   {
     "arguments": [
@@ -87,11 +49,30 @@
       "-DDEBUG",
       "-c",
       "-o",
-      "build/obj/sintactic.o",
-      "src/sintactic.cpp"
+      "build/obj/ast.o",
+      "src/ast.cpp"
     ],
-    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST",
-    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/src/sintactic.cpp",
-    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/Compiladores/Compiler_SST/build/obj/sintactic.o"
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/src/ast.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/build/obj/ast.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Wall",
+      "-Wextra",
+      "-std=c++17",
+      "-Iinclude",
+      "-g",
+      "-O0",
+      "-DDEBUG",
+      "-c",
+      "-o",
+      "build/obj/lexer.o",
+      "src/lexer.cpp"
+    ],
+    "directory": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds",
+    "file": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/src/lexer.cpp",
+    "output": "/home/CHOCEK/Downloads/Codes/Semestre_5/wbds/build/obj/lexer.o"
   }
 ]

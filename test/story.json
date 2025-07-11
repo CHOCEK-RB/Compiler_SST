@@ -3,7 +3,9 @@
     "backgrounds": {
       "patio_escuela": "./assets/backgrounds/smp_front_evening2.png",
       "salon_clases": "./assets/backgrounds/smp_classroom1_evening1.png",
-      "azotea": "./assets/backgrounds/smp_roof_evening1.png"
+      "azotea": "./assets/backgrounds/smp_roof_evening1.png",
+      "biblioteca": "./assets/backgrounds/smp_classroom2_day1.png",
+      "arcade": "./assets/backgrounds/smp_club3_day1.png"
     },
     "music": {
       "tema_principal": "./assets/music/Relax.wav",
@@ -35,36 +37,131 @@
     }
   },
   "script": [
-    { "command": "scene", "background": "salon_clases" },
-    { "command": "play", "music": "tema_principal" },
-    { "command": "show", "character": "hiro", "state": "preocupado", "position": [0, 0] },
-    { "command": "dialogue", "speaker": "You", "text": "El timbre sono, marcando el final de las clases. Todos recogian sus cosas, pero mi mente estaba en otro lugar." },
-    { "command": "show", "character": "akira", "state": "energetico", "position": [700, 0] },
-    { "command": "dialogue", "speaker": "akira", "text": "Hiro! Vamos por un helado? El dia esta perfecto para eso!" },
-    { "command": "dialogue", "speaker": "hiro", "text": "Eh... no lo se, Akira. No tengo mucho animo hoy." },
-    { "command": "dialogue", "speaker": "akira", "text": "Vamos, no puedes estar todo el dia con esa cara. Es por el examen que tenemos?" },
-    { "command": "dialogue", "speaker": "hiro", "text": "No es solo eso... es algo mas." },
-    { "command": "show", "character": "akira", "state": "riendo", "position": [700, 0] },
-    { "command": "dialogue", "speaker": "akira", "text": "Pues con mas razon! Nada que un helado de doble chocolate no pueda arreglar. Vamos!" },
-    { "command": "hide", "character": "hiro" },
-    { "command": "hide", "character": "akira" },
-    { "command": "scene", "background": "azotea" },
-    { "command": "stop", "music": "tema_principal" },
-    { "command": "play", "music": "tema_melancolico" },
-    { "command": "dialogue", "speaker": "You", "text": "Akira me convencio, pero antes de irnos, subi a la azotea. Necesitaba un momento para pensar." },
-    { "command": "dialogue", "speaker": "You", "text": "No esperaba encontrar a nadie mas aqui." },
-    { "command": "show", "character": "yuki", "state": "seria", "position": [700, 0] },
-    { "command": "dialogue", "speaker": "You", "text": "Yuki, la chica mas callada de la clase, estaba mirando el horizonte. Parecia... triste." },
-    { "command": "show", "character": "hiro", "state": "normal", "position": [0, 0] },
-    { "command": "dialogue", "speaker": "hiro", "text": "Oh, Yuki... no sabia que estabas aqui. Disculpa." },
-    { "command": "dialogue", "speaker": "yuki", "text": "No te preocupes. A veces vengo aqui para estar sola." },
-    { "command": "dialogue", "speaker": "hiro", "text": "Te entiendo perfectamente." },
-    { "command": "dialogue", "speaker": "You", "text": "Hubo un silencio, pero no era incomodo. Era raramente reconfortante." },
-    { "command": "show", "character": "yuki", "state": "sonriendo", "position": [700, 0] },
-    { "command": "dialogue", "speaker": "yuki", "text": "Tu tambien pareces preocupado, Hiroshi. Sabes? A veces, hablar de las cosas ayuda.", "speed": 25 },
-    { "command": "show", "character": "hiro", "state": "sonrojado", "position": [0, 0] },
-    { "command": "dialogue", "speaker": "You", "text": "Su sonrisa fue tan inesperada que senti como se me calentaban las mejillas." },
-    { "command": "dialogue", "speaker": "You", "text": "Quizas... quizas tenia razon." },
-    { "command": "stop", "music": "tema_melancolico" }
+    {
+      "label": "start",
+      "commands": [
+        { "command": "scene", "background": "patio_escuela" },
+        { "command": "play", "music": "tema_principal" },
+        { "command": "dialogue", "speaker": "You", "text": "El sol de la tarde baniaba el patio de la escuela. Los examenes finales se acercaban, y la presion era palpable." },
+        { "command": "show", "character": "hiro", "state": "preocupado", "position": [0, 0] },
+        { "command": "dialogue", "speaker": "hiro", "text": "(Deberia estudiar para el examen de maniana... pero tambien necesito un descanso.)" },
+        { "command": "choice", "prompt": "Que haras?", "options": [
+            { "text": "Ir a la biblioteca a estudiar.", "goto": "study_path" },
+            { "text": "Ir al arcade a relajarme.", "goto": "relax_path" }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "study_path",
+      "commands": [
+        { "command": "stop", "music": "tema_principal" },
+        { "command": "scene", "background": "biblioteca" },
+        { "command": "play", "music": "tema_melancolico" },
+        { "command": "dialogue", "speaker": "You", "text": "Decides ir a la biblioteca. El silencio es casi ensordecedor, solo roto por el suave murmullo de las paginas." },
+        { "command": "show", "character": "yuki", "state": "seria", "position": [700, 0] },
+        { "command": "dialogue", "speaker": "You", "text": "Encuentras a Yuki, concentrada en sus apuntes, con una expresion de frustracion." },
+        { "command": "dialogue", "speaker": "hiro", "text": "Hola, Yuki. Todo bien?" },
+        { "command": "dialogue", "speaker": "yuki", "text": "Hiroshi... si, solo este problema de calculo. No logro entenderlo." },
+        { "command": "choice", "prompt": "Que haces?", "options": [
+            { "text": "Ofrecerle ayuda.", "goto": "help_yuki" },
+            { "text": "Concentrarte en tus propios estudios.", "goto": "focus_own_study" }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "help_yuki",
+      "commands": [
+        { "command": "hide", "character": "yuki" },
+        { "command": "show", "character": "yuki", "state": "sonriendo", "position": [700, 0] },
+        { "command": "dialogue", "speaker": "hiro", "text": "Dejame ver. Creo que puedo ayudarte con eso." },
+        { "command": "dialogue", "speaker": "You", "text": "Pasas la siguiente hora explicando el problema a Yuki. Su rostro se ilumina con la comprension." },
+        { "command": "dialogue", "speaker": "yuki", "text": "Muchas gracias, Hiroshi! Eres un salvavidas!" },
+        { "command": "dialogue", "speaker": "You", "text": "Estudian juntos un rato mas. La tarde pasa volando, y te sientes satisfecho." },
+        { "command": "jump", "target": "good_ending" }
+      ]
+    },
+    {
+      "label": "focus_own_study",
+      "commands": [
+        { "command": "dialogue", "speaker": "hiro", "text": "Entiendo. Yo tambien tengo que concentrarme en lo mio." },
+        { "command": "dialogue", "speaker": "You", "text": "Te sumerges en tus libros, ignorando la lucha de Yuki. Logras avanzar mucho en tus estudios." },
+        { "command": "dialogue", "speaker": "You", "text": "Al final, Yuki se rinde con un suspiro y se va. Te sientes un poco solo." },
+        { "command": "jump", "target": "neutral_ending" }
+      ]
+    },
+    {
+      "label": "relax_path",
+      "commands": [
+        { "command": "stop", "music": "tema_principal" },
+        { "command": "scene", "background": "arcade" },
+        { "command": "play", "music": "tema_melancolico" },
+        { "command": "dialogue", "speaker": "You", "text": "Decides ir al arcade. El lugar esta lleno de luces parpadeantes y el sonido de los videojuegos." },
+        { "command": "show", "character": "akira", "state": "energetico", "position": [700, 0] },
+        { "command": "dialogue", "speaker": "You", "text": "Akira te saluda con su energia habitual, ya inmerso en una partida de baile." },
+        { "command": "dialogue", "speaker": "akira", "text": "Hiro! Justo a tiempo! Esta maquina es adictiva!" },
+        { "command": "dialogue", "speaker": "hiro", "text": "(Quizas un par de partidas no hagan danio.)" },
+        { "command": "choice", "prompt": "Que haces?", "options": [
+            { "text": "Unirte a Akira para una partida mas.", "goto": "play_more_game" },
+            { "text": "Decidir que es hora de ir a casa.", "goto": "go_home" }
+          ]
+        }
+      ]
+    },
+    {
+      "label": "play_more_game",
+      "commands": [
+        { "command": "hide", "character": "akira" },
+        { "command": "show", "character": "akira", "state": "riendo", "position": [700, 0] },
+        { "command": "dialogue", "speaker": "akira", "text": "Asi se habla! Una mas y lo dejamos!" },
+        { "command": "dialogue", "speaker": "You", "text": "Una partida se convierte en dos, luego en tres... El tiempo vuela mientras te diviertes con Akira." },
+        { "command": "dialogue", "speaker": "You", "text": "Cuando finalmente sales del arcade, el sol ya se ha puesto. Te das cuenta de que no estudiaste nada." },
+        { "command": "jump", "target": "bad_ending" }
+      ]
+    },
+    {
+      "label": "go_home",
+      "commands": [
+        { "command": "dialogue", "speaker": "hiro", "text": "Mejor me voy a casa. Tengo que estudiar." },
+        { "command": "dialogue", "speaker": "akira", "text": "Oh, vamos! Solo una mas!" },
+        { "command": "dialogue", "speaker": "hiro", "text": "No, en serio. Nos vemos maniana." },
+        { "command": "dialogue", "speaker": "You", "text": "Te despides de Akira y te diriges a casa. Te sientes un poco culpable por no haber estudiado, pero al menos te relajaste." },
+        { "command": "jump", "target": "neutral_ending" }
+      ]
+    },
+    {
+      "label": "good_ending",
+      "commands": [
+        { "command": "stop", "music": "tema_melancolico" },
+        { "command": "scene", "background": "patio_escuela" },
+        { "command": "play", "music": "tema_principal" },
+        { "command": "dialogue", "speaker": "You", "text": "El examen de maniana no parece tan intimidante ahora. Te sientes bien contigo mismo y con la conexion que hiciste." },
+        { "command": "dialogue", "speaker": "You", "text": "Un buen dia, sin duda." },
+        {"command": "end"}
+      ]
+    },
+    {
+      "label": "neutral_ending",
+      "commands": [
+        { "command": "stop", "music": "tema_melancolico" },
+        { "command": "scene", "background": "patio_escuela" },
+        { "command": "play", "music": "tema_principal" },
+        { "command": "dialogue", "speaker": "You", "text": "El dia termino. No fue el mejor, pero tampoco el peor. El examen de maniana sigue siendo una preocupacion." },
+        { "command": "dialogue", "speaker": "You", "text": "Un dia normal, supongo." },
+        {"command": "end"}
+      ]
+    },
+    {
+      "label": "bad_ending",
+      "commands": [
+        { "command": "stop", "music": "tema_melancolico" },
+        { "command": "scene", "background": "patio_escuela" },
+        { "command": "play", "music": "tema_melancolico" },
+        { "command": "dialogue", "speaker": "You", "text": "El dia termino con un sabor amargo. El examen de maniana se cierne sobre ti como una nube oscura." },
+        { "command": "dialogue", "speaker": "You", "text": "Quizas debiste haber tomado otras decisiones." },
+        {"command": "end"}
+      ]
+    }
   ]
 }

@@ -1,5 +1,4 @@
 #include <ast.hpp>
-#include <iostream>
 #include <parser.hpp>
 #include <stdexcept>
 #include <token.hpp>
@@ -24,7 +23,7 @@ void checkParameterImage(const std::string &name, const std::string &value,
 
 void checkParameterDialogue(const std::string &name, const std::string &value,
                             ParameterValue &buffValue) {
-  if (name == "size" || name == "font" || name == "speed") {
+  if (name == "size" || name == "speed") {
     try {
       buffValue = std::stod(value);
     } catch (const std::invalid_argument &e) {
@@ -57,8 +56,6 @@ void Parser::advance() {
   current = lexer.nextToken();
   while (current.type == TokenType::COMMENT) {
     current = lexer.nextToken();
-    std::cout << tokenToString(current.type) << ", Line : " << current.line
-              << "\n";
   }
 }
 
@@ -92,6 +89,14 @@ std::unique_ptr<ProgramNode> Parser::parseProgram() {
       program->statements.push_back(parsePlay());
     } else if (isStop()) {
       program->statements.push_back(parseStop());
+    } else if (isChoice()) {
+      program->statements.push_back(parseChoice());
+    } else if (isLabel()) {
+      program->statements.push_back(parseLabel());
+    } else if (isJump()) {
+      program->statements.push_back(parseJump());
+    } else if (isEnd()) {
+      program->statements.push_back(parseEnd());
     } else {
       throw std::runtime_error("[Línea " + std::to_string(current.line) +
                                "] Sentencia inválida");
@@ -312,5 +317,88 @@ std::unique_ptr<StopNode> Parser::parseStop() {
   advance();
   node->musicId = current.value;
   expect(TokenType::IDENTIFIER, "Se esperaba el ID de la música a detener");
+  return node;
+}
+
+std::unique_ptr<ChoiceNode> Parser::parseChoice() {
+  auto node = std::make_unique<ChoiceNode>();
+
+  advance();
+  node->prompt = current.value;
+  expect(TokenType::STRING,
+         "Se esperaba un string para el prompt de la elección");
+
+  while (current.type == TokenType::OPTION) {
+    auto optionNode = std::make_unique<OptionNode>();
+    advance();
+    optionNode->text = current.value;
+    expect(TokenType::STRING,
+           "Se esperaba un string para el texto de la opción");
+    expect(TokenType::ARROW, "Se esperaba '->' después del texto de la opción");
+    optionNode->gotoLabel = current.value;
+    expect(TokenType::IDENTIFIER,
+           "Se esperaba un identificador para la etiqueta de salto");
+    node->options.push_back(std::move(optionNode));
+  }
+
+  return node;
+}
+
+std::unique_ptr<LabelNode> Parser::parseLabel() {
+  auto node = std::make_unique<LabelNode>();
+
+  advance();
+  node->name = current.value;
+  expect(TokenType::IDENTIFIER,
+         "Se esperaba un identificador para la etiqueta");
+  expect(TokenType::COLON, "Se esperaba ':' después del nombre de la etiqueta");
+
+  while (current.type != TokenType::LABEL &&
+         current.type != TokenType::END_OF_FILE) {
+    if (isBackground()) {
+      node->statements.push_back(parseBackground());
+    } else if (isDefine()) {
+      node->statements.push_back(parseDefine());
+    } else if (isScene()) {
+      node->statements.push_back(parseScene());
+    } else if (isShow()) {
+      node->statements.push_back(parseShow());
+    } else if (isHide()) {
+      node->statements.push_back(parseHide());
+    } else if (isDialogue()) {
+      node->statements.push_back(parseDialogue());
+    } else if (isMusic()) {
+      node->statements.push_back(parseMusic());
+    } else if (isPlay()) {
+      node->statements.push_back(parsePlay());
+    } else if (isStop()) {
+      node->statements.push_back(parseStop());
+    } else if (isChoice()) {
+      node->statements.push_back(parseChoice());
+    } else if (isJump()) {
+      node->statements.push_back(parseJump());
+    } else if (isEnd()) {
+      node->statements.push_back(parseEnd());
+    } else {
+      throw std::runtime_error("[Línea " + std::to_string(current.line) +
+                               "] Sentencia inválida dentro de la etiqueta");
+    }
+  }
+
+  return node;
+}
+
+std::unique_ptr<JumpNode> Parser::parseJump() {
+  auto node = std::make_unique<JumpNode>();
+
+  advance();
+  node->target = current.value;
+  expect(TokenType::IDENTIFIER, "Se esperaba el ID de la etiqueta a ir");
+  return node;
+}
+
+std::unique_ptr<EndNode> Parser::parseEnd() {
+  advance();
+  auto node = std::make_unique<EndNode>();
   return node;
 }

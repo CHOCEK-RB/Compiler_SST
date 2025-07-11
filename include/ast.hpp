@@ -97,3 +97,38 @@ public:
 
   void generateCode(std::ostream &out, int indent) const override;
 };
+
+class OptionNode : public ASTNode {
+public:
+  std::string text;
+  std::string gotoLabel;
+
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
+class ChoiceNode : public ASTNode {
+public:
+  std::string prompt;
+  std::vector<std::unique_ptr<OptionNode>> options;
+
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
+class LabelNode : public ASTNode {
+public:
+  std::string name;
+  std::vector<std::unique_ptr<ASTNode>> statements;
+
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
+class JumpNode : public ASTNode {
+public:
+  std::string target;
+  void generateCode(std::ostream &out, int indent) const override;
+};
+
+class EndNode : public ASTNode {
+public:
+  void generateCode(std::ostream &out, int indent) const override;
+};

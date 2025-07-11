@@ -1,13 +1,15 @@
 # ===============================================
-#  Definición de Assets (Recursos del Juego)
+#  Definicion de Assets (Recursos del Juego)
 # ===============================================
 
 # --- Fondos de Escena ---
 background patio_escuela ("./assets/backgrounds/smp_front_evening2.png")
 background salon_clases ("./assets/backgrounds/smp_classroom1_evening1.png")
 background azotea ("./assets/backgrounds/smp_roof_evening1.png")
+background biblioteca ("./assets/backgrounds/smp_classroom2_day1.png") # Usando un aula como biblioteca
+background arcade ("./assets/backgrounds/smp_club3_day1.png") # Usando un club como arcade
 
-# --- Pistas de Música ---
+# --- Pistas de Musica ---
 music tema_principal "./assets/music/Relax.wav"
 music tema_melancolico "./assets/music/Death.wav"
 
@@ -33,57 +35,107 @@ define yuki "Yuki" {
 #  Inicio del Guion de la Historia
 # ===============================================
 
-# --- Acto 1: Un Día Normal ---
-
-scene salon_clases
+label start:
+scene patio_escuela
 play tema_principal
 
+"El sol de la tarde baniaba el patio de la escuela. Los examenes finales se acercaban, y la presion era palpable."
 show hiro preocupado (x: 0, y: 0)
+hiro "(Deberia estudiar para el examen de maniana... pero tambien necesito un descanso.)"
 
-"El timbre sono, marcando el final de las clases. Todos recogian sus cosas, pero mi mente estaba en otro lugar."
+choice "Que haras?"
+    option "Ir a la biblioteca a estudiar." -> study_path
+    option "Ir al arcade a relajarme." -> relax_path
 
-show akira energetico (x: 700, y: 0)
-
-akira "Hiro! Vamos por un helado? El dia esta perfecto para eso!"
-hiro "Eh... no lo se, Akira. No tengo mucho animo hoy."
-akira "Vamos, no puedes estar todo el dia con esa cara. Es por el examen que tenemos?"
-hiro "No es solo eso... es algo mas."
-
-show akira riendo (x: 700, y: 0)
-
-akira "Pues con mas razon! Nada que un helado de doble chocolate no pueda arreglar. Vamos!"
-
-# --- Acto 2: El Encuentro en la Azotea ---
-
-hide hiro
-hide akira
-scene azotea
+label study_path:
 stop tema_principal
+scene biblioteca
 play tema_melancolico
 
-"Akira me convencio, pero antes de irnos, subi a la azotea. Necesitaba un momento para pensar."
-"No esperaba encontrar a nadie mas aqui."
-
+"Decides ir a la biblioteca. El silencio es casi ensordecedor, solo roto por el suave murmullo de las paginas."
 show yuki seria (x: 700, y: 0)
+"Encuentras a Yuki, concentrada en sus apuntes, con una expresion de frustracion."
 
-"Yuki, la chica mas callada de la clase, estaba mirando el horizonte. Parecia... triste."
+hiro "Hola, Yuki. Todo bien?"
+yuki "Hiroshi... si, solo este problema de calculo. No logro entenderlo."
 
-show hiro normal (x: 0, y: 0)
+choice "Que haces?"
+    option "Ofrecerle ayuda." -> help_yuki
+    option "Concentrarte en tus propios estudios." -> focus_own_study
 
-hiro "Oh, Yuki... no sabia que estabas aqui. Disculpa."
-yuki "No te preocupes. A veces vengo aqui para estar sola."
-hiro "Te entiendo perfectamente."
-
-"Hubo un silencio, pero no era incomodo. Era raramente reconfortante."
-
+label help_yuki:
+hide yuki
 show yuki sonriendo (x: 700, y: 0)
 
-yuki "Tu tambien pareces preocupado, Hiroshi. Sabes? A veces, hablar de las cosas ayuda." (speed: 25)
+hiro "Dejame ver. Creo que puedo ayudarte con eso."
+"Pasas la siguiente hora explicando el problema a Yuki. Su rostro se ilumina con la comprension."
+yuki "Muchas gracias, Hiroshi! Eres un salvavidas!"
+"Estudian juntos un rato mas. La tarde pasa volando, y te sientes satisfecho."
+jump good_ending
 
-show hiro sonrojado (x: 0, y: 0)
+label focus_own_study:
 
-"Su sonrisa fue tan inesperada que senti como se me calentaban las mejillas."
-"Quizas... quizas tenia razon."
+hiro "Entiendo. Yo tambien tengo que concentrarme en lo mio."
+"Te sumerges en tus libros, ignorando la lucha de Yuki. Logras avanzar mucho en tus estudios."
+"Al final, Yuki se rinde con un suspiro y se va. Te sientes un poco solo."
+jump neutral_ending
 
+label relax_path:
+stop tema_principal
+scene arcade
+play tema_melancolico
+
+"Decides ir al arcade. El lugar esta lleno de luces parpadeantes y el sonido de los videojuegos."
+show akira energetico (x: 700, y: 0)
+"Akira te saluda con su energia habitual, ya inmerso en una partida de baile."
+
+akira "Hiro! Justo a tiempo! Esta maquina es adictiva!"
+hiro "(Quizas un par de partidas no hagan danio.)"
+
+choice "Que haces?"
+    option "Unirte a Akira para una partida mas." -> play_more_game
+    option "Decidir que es hora de ir a casa." -> go_home
+
+label play_more_game:
+hide akira
+show akira riendo (x: 700, y: 0)
+
+akira "Asi se habla! Una mas y lo dejamos!"
+"Una partida se convierte en dos, luego en tres... El tiempo vuela mientras te diviertes con Akira."
+"Cuando finalmente sales del arcade, el sol ya se ha puesto. Te das cuenta de que no estudiaste nada."
+jump bad_ending
+
+label go_home:
+
+hiro "Mejor me voy a casa. Tengo que estudiar."
+akira "Oh, vamos! Solo una mas!"
+hiro "No, en serio. Nos vemos maniana."
+"Te despides de Akira y te diriges a casa. Te sientes un poco culpable por no haber estudiado, pero al menos te relajaste."
+jump neutral_ending
+
+label good_ending:
 stop tema_melancolico
+scene patio_escuela
+play tema_principal
 
+"El examen de maniana no parece tan intimidante ahora. Te sientes bien contigo mismo y con la conexion que hiciste."
+"Un buen dia, sin duda."
+end
+
+label neutral_ending:
+stop tema_melancolico
+scene patio_escuela
+play tema_principal
+
+"El dia termino. No fue el mejor, pero tampoco el peor. El examen de maniana sigue siendo una preocupacion."
+"Un dia normal, supongo."
+end
+
+label bad_ending:
+stop tema_melancolico
+scene patio_escuela
+play tema_melancolico
+
+"El dia termino con un sabor amargo. El examen de maniana se cierne sobre ti como una nube oscura."
+"Quizas debiste haber tomado otras decisiones."
+end
