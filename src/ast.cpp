@@ -823,7 +823,7 @@ private:
       }
       if (auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if (keyPressed->code == sf::Keyboard::Key::Space) {
-          if (dialogueSystem_->isFinished()) {
+          if (dialogueSystem_->isFinished() && currentState_ == State::WRITING_DIALOGUE) {
             currentState_ = State::EXECUTING_COMMAND;
             commandIndex_++;
           }

@@ -757,17 +757,16 @@ private:
             } else if constexpr (std::is_same_v<T, EndCmd>) {
               window_.close();
               currentState_ =
-                  State::IDLE; // Set to IDLE to stop further processing
+                  State::IDLE;
             } else if constexpr (std::is_same_v<T, JumpCmd>) {
               if (labelMap_.count(arg.targetLabel)) {
                 commandIndex_ = labelMap_[arg.targetLabel];
                 currentState_ =
-                    State::EXECUTING_COMMAND; // Ensure we continue executing
-                                              // from the new label
+                    State::EXECUTING_COMMAND; 
               } else {
                 std::cerr << "Error: Jump target label \"" << arg.targetLabel
                           << "\" not found.\n";
-                currentState_ = State::IDLE; // Stop if target not found
+                currentState_ = State::IDLE;
               }
             }
             currentState_ = State::EXECUTING_COMMAND;
@@ -784,7 +783,7 @@ private:
       }
       if (auto *keyPressed = event->getIf<sf::Event::KeyPressed>()) {
         if (keyPressed->code == sf::Keyboard::Key::Space) {
-          if (dialogueSystem_->isFinished()) {
+          if (dialogueSystem_->isFinished() && currentState_ == State::WRITING_DIALOGUE) {
             currentState_ = State::EXECUTING_COMMAND;
             commandIndex_++;
           }
