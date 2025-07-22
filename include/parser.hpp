@@ -3,8 +3,18 @@
 #include <lexer.hpp>
 #include <memory>
 #include <string>
+#include <unordered_map>
+#include <unordered_set>
 
 enum ParameterMode { IMAGE, DIALOGUE };
+
+struct SymbolTable {
+  std::unordered_set<std::string> backgrounds;
+  std::unordered_map<std::string, std::unordered_set<std::string>> characters;
+  std::unordered_set<std::string> music;
+  std::unordered_set<std::string> labels;
+  std::unordered_set<std::string> jumpTargets;
+};
 
 class Parser {
 public:
@@ -17,10 +27,10 @@ private:
   Token current;
 
   std::string compilerPath;
+  SymbolTable symbols;
 
   void advance();
   void expect(TokenType type, const std::string &msg);
-
   void parseStatement();
 
   std::unique_ptr<MusicNode> parseMusic();
