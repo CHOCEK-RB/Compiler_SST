@@ -16,7 +16,11 @@ public:
 
 class ProgramNode : public ASTNode {
 public:
+  std::string compilerPath;
   std::vector<std::unique_ptr<ASTNode>> statements;
+
+  ProgramNode(std::string compiler_path)
+      : compilerPath(std::move(compiler_path)) {}
 
   void generateCode(std::ostream &out, int indent) const override;
 };

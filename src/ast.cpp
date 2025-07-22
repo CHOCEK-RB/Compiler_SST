@@ -1,4 +1,5 @@
 #include "ast.hpp"
+#include <filesystem>
 #include <fstream>
 #include <iomanip>
 #include <stdexcept>
@@ -37,8 +38,10 @@ std::string escapeJsonString(const std::string &s) {
   return escaped;
 }
 
-void generateEngineCode(std::ostream &out) {
-  out << R"#(#include <SFML/Audio.hpp>
+void generateEngineCode(std::ostream &out, const std::string &compilerPath) {
+  std::string story_json_path_str = compilerPath + "/.tmp/story.json";
+
+  out << R"__(#include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 #include <cstddef>
 #include <fstream>
@@ -882,7 +885,8 @@ private:
 };
 
 int main(int argc, char *argv[]) {
-  std::string storyFile = "story.json";
+  std::string storyFile = ")__" +
+             story_json_path_str + R"__(";
   if (argc > 1) {
     storyFile = argv[1];
   }
@@ -892,17 +896,19 @@ int main(int argc, char *argv[]) {
   engine.run();
   return 0;
 }
-)#";
+)__";
 }
 
 void ProgramNode::generateCode(std::ostream &out, int indent) const {
-  std::ofstream engineFile("juego_generado.cpp");
+  std::string enginePath = compilerPath + "/.tmp/juego_generado.cpp";
+  std::ofstream engineFile(enginePath);
+
   if (engineFile.is_open()) {
-    generateEngineCode(engineFile);
+    generateEngineCode(engineFile, compilerPath);
     engineFile.close();
   } else {
-    throw std::runtime_error(
-        "No se pudo abrir juego_generado.cpp para escribir.");
+    throw std::runtime_error("No se pudo abrir " + enginePath +
+                             " para escribir.");
   }
 
   out << "{\n";
@@ -959,7 +965,8 @@ void ProgramNode::generateCode(std::ostream &out, int indent) const {
 
 void BackgroundNode::generateCode(std::ostream &out, int indent) const {
   out << std::string(indent, ' ') << "\"" << name << "\": \""
-      << escapeJsonString(imagePath) << "\"";
+      << escapeJsonString(std::filesystem::absolute(imagePath).string())
+      << "\"";
 }
 
 void CharacterNode::generateCode(std::ostream &out, int indent) const {
@@ -972,7 +979,9 @@ void CharacterNode::generateCode(std::ostream &out, int indent) const {
     if (!first)
       out << ",\n";
     out << std::string(indent + 4, ' ') << "\"" << mode->name << "\": { ";
-    out << "\"path\": \"" << escapeJsonString(mode->imagePath) << "\"";
+    out << "\"path\": \""
+        << escapeJsonString(std::filesystem::absolute(mode->imagePath).string())
+        << "\"";
     for (const auto &[key, val] : mode->parameters) {
       if (key == "scale") {
         out << ", \"scale\": [" << std::get<double>(val) << ", "
@@ -1036,7 +1045,7 @@ void SceneNode::generateCode(std::ostream &out, int indent) const {
 
 void MusicNode::generateCode(std::ostream &out, int indent) const {
   out << std::string(indent, ' ') << "\"" << id << "\": \""
-      << escapeJsonString(filePath) << "\"";
+      << escapeJsonString(std::filesystem::absolute(filePath).string()) << "\"";
 }
 
 void PlayNode::generateCode(std::ostream &out, int indent) const {

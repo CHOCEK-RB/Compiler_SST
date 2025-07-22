@@ -47,8 +47,9 @@ std::string tokenToString(TokenType type) {
   return "UNDEFINED";
 }
 
-Parser::Parser(Lexer &lexer)
-    : lexer(lexer), current(Token{TokenType::UNKNOWN, "", 0}) {
+Parser::Parser(Lexer &lexer, std::string compilerPath)
+    : lexer(lexer), current(Token{TokenType::UNKNOWN, "", 0}),
+      compilerPath(std::move(compilerPath)) {
   advance();
 }
 
@@ -68,7 +69,7 @@ void Parser::expect(TokenType type, const std::string &msg) {
 }
 
 std::unique_ptr<ProgramNode> Parser::parseProgram() {
-  auto program = std::make_unique<ProgramNode>();
+  auto program = std::make_unique<ProgramNode>(compilerPath);
 
   while (current.type != TokenType::END_OF_FILE) {
     if (isBackground()) {

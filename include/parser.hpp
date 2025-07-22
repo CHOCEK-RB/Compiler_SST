@@ -8,13 +8,15 @@ enum ParameterMode { IMAGE, DIALOGUE };
 
 class Parser {
 public:
-  Parser(Lexer &lexer);
+  Parser(Lexer &lexer, std::string compilerPath);
 
   std::unique_ptr<ProgramNode> parseProgram();
 
 private:
   Lexer &lexer;
   Token current;
+
+  std::string compilerPath;
 
   void advance();
   void expect(TokenType type, const std::string &msg);
