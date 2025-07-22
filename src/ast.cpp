@@ -667,8 +667,6 @@ private:
     for (const auto &labelEntry : script) {
       std::string labelName = labelEntry["label"].get<std::string>();
       const auto &commands = labelEntry["commands"];
-      std::cout << "DEBUG label : " << labelName
-                << " , position : " << storyScript_.size() << "\n";
       labelMap_[labelName] = storyScript_.size();
       for (const auto &cmdJson : commands) {
         std::string commandType = cmdJson["command"].get<std::string>();
